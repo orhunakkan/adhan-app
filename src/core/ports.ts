@@ -83,3 +83,11 @@ export interface GeolocationPort {
 export interface PhotoProcessor {
   resize(file: Blob): Promise<Blob>;
 }
+
+/** Service worker registration (workbox-window in production). */
+export interface ServiceWorkerPort {
+  /** Registers the worker; `onWaiting` fires when an updated worker is ready. */
+  register(onWaiting: () => void): void;
+  /** Activates the waiting worker; the page reloads once it takes control. */
+  applyUpdate(): void;
+}

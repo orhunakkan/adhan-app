@@ -101,5 +101,8 @@
   "photos.delete": "حذف",
   "photos.empty": "لا توجد صور بعد",
   "photos.count": "{n} صور",
-  "photos.item": "صورة {n}"
+  "photos.item": "صورة {n}",
+  "update.available": "يتوفر تحديث",
+  "update.apply": "تطبيق",
+  "update.blocked": "وقت الصلاة قريب؛ طبّقه بعد {time}"
 }

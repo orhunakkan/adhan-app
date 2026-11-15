@@ -12,6 +12,7 @@ import type {
   Clock,
   GeolocationPort,
   PhotoProcessor,
+  ServiceWorkerPort,
   KeyValueStore,
   MediaPlayer,
   ObjectUrls,
@@ -23,9 +24,11 @@ import { parsePanels, shuffle, type Panel } from '../core/panels';
 import { createPhotoSource } from '../core/photos';
 import type { AzanPrayer } from '../core/prayerTimes';
 import { createScheduler, type PrayerEvent, type SchedulerEvent } from '../core/scheduler';
+import { formatTime } from '../core/time';
+import { canApplyUpdate } from '../core/updateGate';
 import { createWakeLockManager, type WakeLockStatus } from '../core/wakeLock';
 import { applyTokens } from '../design/tokens';
-import { applyLocale, t } from '../i18n';
+import { applyLocale, INTL_LOCALE, t } from '../i18n';
 import { loadSettings, saveSettings } from '../core/storage';
 import { mountAzanView } from '../ui/azanView';
 import { mountBackground } from '../ui/background';
@@ -69,6 +72,7 @@ export interface AppDeps {
   photoProcessor: PhotoProcessor;
   /** navigator.storage.persist, when the browser has it (iOS 15.2+); asked once after Start. */
   persistStorage?: () => Promise<boolean>;
+  serviceWorker?: ServiceWorkerPort;
 }
 
 export interface ActiveAzan {
@@ -95,6 +99,8 @@ export interface AppState {
   nightDim: NightDimState;
   /** prefers-reduced-motion: no breathing, Ken Burns or drift; plain fades. */
   reducedMotion: boolean;
+  /** A new service worker is waiting (brief §11). */
+  updateAvailable: boolean;
 }
 
 export interface App {
@@ -108,6 +114,8 @@ export interface App {
   stopAzan(): void;
   /** Stops a settings "Test azan" playback only. */
   stopTest(): void;
+  /** Applies a waiting service worker if the update gate allows it now. */
+  applyUpdate(): void;
   testAudio(source: string): Promise<void>;
   log: Logger;
   dispose(): void;
@@ -149,6 +157,7 @@ export function createApp(deps: AppDeps): App {
       wakeLock: 'idle',
       nightDim: { active: false, opacity: 0 },
       reducedMotion: false,
+      updateAvailable: false,
     },
     // Views subscribe to this store; a throwing view is logged, never propagated.
     (e) => log.error('view listener threw', String(e)),
@@ -441,6 +450,33 @@ export function createApp(deps: AppDeps): App {
       if (store.get().azan) closeAzan(true);
       else audio.stop();
     },
+    applyUpdate() {
+      const s = store.get();
+      if (!s.updateAvailable || !deps.serviceWorker) return;
+      const decision = s.days
+        ? canApplyUpdate({ now: deps.clock.now(), days: s.days, azanPlaying: Boolean(s.azan) })
+        : ({ allowed: true } as const);
+      if (decision.allowed) {
+        log.info('applying update');
+        deps.serviceWorker.applyUpdate();
+        return;
+      }
+      const lang = s.settings.display.language;
+      const until =
+        decision.reason === 'prayer-soon'
+          ? decision.until
+          : new Date(deps.clock.now().getTime() + 5 * 60_000);
+      const time = formatTime(until, {
+        tz: s.settings.location?.tz ?? 'UTC',
+        hour12: s.settings.display.hour12,
+        seconds: false,
+        locale: INTL_LOCALE[lang],
+      });
+      log.info('update blocked by the update gate', { reason: decision.reason });
+      toast.show({ message: t(lang, 'update.blocked', { time }), durationMs: 10_000 });
+      // Offer it again once the message has been read.
+      deps.clock.setTimeout(showUpdateToast, 10_000);
+    },
     stopTest() {
       if (audio.state().phase === 'test') audio.stop();
     },
@@ -516,6 +552,22 @@ export function createApp(deps: AppDeps): App {
       panels = shuffle(parsePanels(json), deps.rng);
     })
     .catch((err: unknown) => log.warn('panels could not load', String(err)));
+
+  /** Update toast: stays up until tapped; the tap is gated so a reload never lands near an azan. */
+  const UPDATE_TOAST_MS = 24 * 3_600_000;
+  const showUpdateToast = () => {
+    const lang = store.get().settings.display.language;
+    toast.show({
+      message: t(lang, 'update.available'),
+      durationMs: UPDATE_TOAST_MS,
+      action: { label: t(lang, 'update.apply'), onClick: () => app.applyUpdate() },
+    });
+  };
+  deps.serviceWorker?.register(() => {
+    log.info('update waiting');
+    store.update({ updateAvailable: true });
+    showUpdateToast();
+  });
 
   onMotion();
   scheduler.start();

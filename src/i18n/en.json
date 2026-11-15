@@ -101,5 +101,8 @@
   "photos.delete": "Delete",
   "photos.empty": "No photos yet",
   "photos.count": "{n} photos",
-  "photos.item": "Photo {n}"
+  "photos.item": "Photo {n}",
+  "update.available": "Update available",
+  "update.apply": "Apply",
+  "update.blocked": "Prayer time is near; apply after {time}"
 }

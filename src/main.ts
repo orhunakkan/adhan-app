@@ -7,6 +7,7 @@ import { createIdbBlobStore } from './adapters/idbBlobStore';
 import { createLocalStore } from './adapters/localStore';
 import { createAudioElementPlayer } from './adapters/media';
 import { mathRng } from './adapters/rng';
+import { createServiceWorker } from './adapters/sw';
 import { createBrowserWakeLock } from './adapters/wakeLock';
 import { createApp } from './app/createApp';
 import { parseCities } from './core/cities';
@@ -42,6 +43,7 @@ function start(root: HTMLElement) {
     wakeLock: createBrowserWakeLock(navigator),
     geolocation: createBrowserGeolocation(navigator),
     photoProcessor: createCanvasPhotoProcessor(document),
+    serviceWorker: import.meta.env.PROD ? createServiceWorker(navigator, location) : undefined,
     persistStorage:
       'storage' in navigator && 'persist' in navigator.storage
         ? () => navigator.storage.persist()
