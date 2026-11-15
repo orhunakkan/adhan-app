@@ -32,7 +32,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `tests/build/compat.test.ts`, `tests/build/budgets.test.ts`, `tests/build/hygiene.test.ts`, `tests/build/lib/scan.ts`, `tests/core/scan.test.ts`
   - Deps: 1, 3
 
-- [ ] **Task 5: CONSTRAINTS.md, `npm run ci`, GitHub Actions, public repo** (S) — §12, §12.1, constraint-driven-development
+- [x] **Task 5: CONSTRAINTS.md, `npm run ci`, GitHub Actions, public repo** (S) — §12, §12.1, constraint-driven-development
   - Acceptance: `CONSTRAINTS.md` records the floor, coverage numbers, budgets and the Vitest-only rule, each with its reason and command; `npm run ci` runs lint → typecheck → test:coverage → build → test:build; `.github/workflows/ci.yml` runs it on PRs and pushes to `main` (Node LTS, `npm ci`); public repo `adhan-app` created, `main` pushed, branch protection requires CI, secret scanning + push protection on
   - Verify: `npm run ci` green locally; the GitHub Actions run on `main` is green (`gh run watch`); `gh api repos/:owner/adhan-app/branches/main/protection` shows the required check
   - Files: `CONSTRAINTS.md`, `package.json`, `.github/workflows/ci.yml`, `CLAUDE.md`

@@ -4,7 +4,7 @@ Self-hosted, offline-first PWA that turns an old iPad (iPadOS 15.8, Safari 15.8,
 
 - **Spec (source of truth):** `SPEC.md`. Detailed requirements live in the build brief `adhan-app-build-plan.md`; SPEC.md references its sections (§N).
 - **Plan / task status:** `tasks/plan.md`, `tasks/todo.md`.
-- **Quality bar:** `CONSTRAINTS.md`. Read it before finishing any task. Never weaken it (lower a threshold, skip/delete a test, add a suppression) to make a change pass.
+- **Quality bar:** `CONSTRAINTS.md`. Read CONSTRAINTS.md before writing code. Never weaken it (lower a threshold, skip/delete a test, add a suppression) to make a change pass.
 
 ## Workflow: agent-skills lifecycle
 
