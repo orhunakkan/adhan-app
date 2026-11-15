@@ -39,8 +39,9 @@ describe('settings shell', () => {
     expect(q('.settings')).toBeNull();
   });
 
-  it('shows the sections and the active pane; Close and Escape close it', () => {
+  it('shows the sections and the active pane; Close and Escape close it', async () => {
     m = mountApp({ start: START });
+    await m.app.tapStart(); // otherwise the start overlay keeps the main screen inert
     longPress(m);
     const sections = [...document.querySelectorAll<HTMLElement>('.settings__section')];
     expect(sections.map((s) => s.dataset.section)).toEqual([

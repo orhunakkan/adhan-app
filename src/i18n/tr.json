@@ -128,5 +128,6 @@
   "pin.mismatch": "PIN'ler eşleşmiyor veya 4 rakam değil",
   "pin.active": "Ayarlar PIN ile korunuyor",
   "pin.locked": "Çok fazla deneme; {n} sn bekleyin",
-  "about.update": "Güncellemeyi uygula"
+  "about.update": "Güncellemeyi uygula",
+  "azan.progress": "Ezan ilerlemesi"
 }

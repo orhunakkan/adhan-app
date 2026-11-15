@@ -128,5 +128,6 @@
   "pin.mismatch": "The PINs differ or are not 4 digits",
   "pin.active": "Settings are protected by a PIN",
   "pin.locked": "Too many tries; wait {n} s",
-  "about.update": "Apply update"
+  "about.update": "Apply update",
+  "azan.progress": "Azan progress"
 }

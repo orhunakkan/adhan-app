@@ -5,7 +5,7 @@ import type { App, AppState } from '../../app/createApp';
 import type { City } from '../../core/cities';
 import type { Clock, GeolocationPort, TimerHandle } from '../../core/ports';
 import { t, type Lang, type MessageKey } from '../../i18n';
-import { h, toggleClass } from '../dom';
+import { h, openModal, toggleClass, trapTab } from '../dom';
 
 export const LONG_PRESS_MS = 3000;
 /** The sheet closes (and re-locks) after this long without a touch. */
@@ -69,13 +69,12 @@ export function mountSettings(
     app: App;
     clock: Clock;
     sections: SettingsSection[];
-    background: HTMLElement;
     matchMedia: (q: string) => MediaQueryList;
     toast: (message: string) => void;
     services: SettingsServices;
   },
 ): SettingsView {
-  const hotspot = h('button', 'settings-hotspot');
+  const hotspot = h('button', 'settings-hotspot touch-target');
   hotspot.type = 'button';
   const layer = h('div', 'settings-layer');
   layer.hidden = true;
@@ -90,6 +89,7 @@ export function mountSettings(
   let pressTimer: TimerHandle | null = null;
   let idleTimer: TimerHandle | null = null;
   let wrongTries = 0;
+  let restoreInert: (() => void) | null = null;
   let lockedUntil = 0;
 
   const armIdle = () => {
@@ -191,6 +191,7 @@ export function mountSettings(
     close.type = 'button';
     close.addEventListener('click', () => view.close());
     pad.append(title, dots, error, keys, close);
+    pad.addEventListener('keydown', (e) => trapTab(pad, e));
     return pad;
   };
 
@@ -245,6 +246,7 @@ export function mountSettings(
     back.hidden = !(isPortrait && drilled);
     el.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') view.close();
+      trapTab(el, e);
     });
     return el;
   };
@@ -296,7 +298,7 @@ export function mountSettings(
       unlocked = deps.app.state().settings.pin === null;
       drilled = false;
       layer.hidden = false;
-      deps.background.inert = true;
+      restoreInert = openModal(root, layer);
       lastKey = undefined;
       draw(true, true);
       armIdle();
@@ -310,11 +312,15 @@ export function mountSettings(
       layer.hidden = true;
       for (const sec of deps.sections) sec.destroy?.();
       layer.replaceChildren();
-      deps.background.inert = false;
+      restoreInert?.();
+      restoreInert = null;
       deps.app.stopTest();
     },
     isOpen: () => open,
-    render() {
+    render(s) {
+      // The corner button's name follows the UI language.
+      const label = t(s.settings.display.language, 'settings.title');
+      if (hotspot.getAttribute('aria-label') !== label) hotspot.setAttribute('aria-label', label);
       draw();
     },
     destroy() {

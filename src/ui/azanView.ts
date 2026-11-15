@@ -4,7 +4,7 @@
 import type { AppState } from '../app/createApp';
 import { formatTime } from '../core/time';
 import { INTL_LOCALE, prayerName, t } from '../i18n';
-import { h, setText, toggleClass } from './dom';
+import { h, setAttr, setOwnInert, setText, toggleClass } from './dom';
 
 export interface AzanViewDeps {
   onStop(): void;
@@ -48,8 +48,8 @@ export function mountAzanView(
       const az = s.azan;
       const on = az !== null;
       toggleClass(root, 'azan--visible', on);
-      root.setAttribute('aria-hidden', on ? 'false' : 'true');
-      root.inert = !on;
+      setAttr(root, 'aria-hidden', on ? 'false' : 'true');
+      setOwnInert(root, !on);
       toggleClass(glow, 'azan__glow--breathing', !s.reducedMotion);
       if (!az) return;
       const lang = s.settings.display.language;
@@ -76,6 +76,9 @@ export function mountAzanView(
         setText(duaText, t(lang, 'dua.text'));
       }
       setText(stop, t(lang, 'azan.stop'));
+      if (progress.getAttribute('aria-label') !== t(lang, 'azan.progress')) {
+        progress.setAttribute('aria-label', t(lang, 'azan.progress'));
+      }
       const { current, duration } = deps.position();
       const pct = duration > 0 ? Math.min(100, Math.round((current / duration) * 100)) : 0;
       if (pct !== lastPct) {

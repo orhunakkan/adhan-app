@@ -1,5 +1,6 @@
 // "Tap to Start", the danger "Tap to enable azan" and the Resume bar (brief §7, §8.7).
 import { LANGS, t, type Lang } from '../i18n';
+import { openModal, trapTab } from './dom';
 
 export type OverlayKind = 'start' | 'enableAzan' | 'resume' | null;
 
@@ -8,7 +9,6 @@ export interface OverlayDeps {
   onEnable(): void;
   onResume(): void;
   /** Content behind the overlay, made inert while a modal overlay is open. */
-  background: HTMLElement;
 }
 
 export interface OverlayView {
@@ -21,6 +21,7 @@ export function mountOverlay(root: HTMLElement, deps: OverlayDeps): OverlayView 
   layer.className = 'overlay-layer';
   root.append(layer);
   let shown: string | null = null;
+  let restoreInert: (() => void) | null = null;
 
   const modal = (danger: boolean, lang: Lang) => {
     const el = document.createElement('div');
@@ -61,13 +62,7 @@ export function mountOverlay(root: HTMLElement, deps: OverlayDeps): OverlayView 
       hint.textContent = t(lang, 'start.hint');
       el.append(title, hint);
     }
-    // Focus trap: the dialog has one control, so Tab keeps focus on it.
-    el.addEventListener('keydown', (e) => {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        button.focus();
-      }
-    });
+    el.addEventListener('keydown', (e) => trapTab(el, e));
     return { el, focus: () => button.focus() };
   };
 
@@ -92,14 +87,17 @@ export function mountOverlay(root: HTMLElement, deps: OverlayDeps): OverlayView 
       shown = id;
       layer.replaceChildren();
       const isModal = overlay === 'start' || overlay === 'enableAzan';
-      deps.background.inert = isModal;
+      restoreInert?.();
+      restoreInert = null;
+      // A modal overlay makes everything else under the app root unreachable.
+      if (isModal) restoreInert = openModal(root, layer);
       if (!overlay) return;
       const view = overlay === 'resume' ? resumeBar(lang) : modal(overlay === 'enableAzan', lang);
       layer.append(view.el);
       view.focus();
     },
     destroy() {
-      deps.background.inert = false;
+      restoreInert?.();
       layer.remove();
     },
   };
