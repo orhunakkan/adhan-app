@@ -142,7 +142,7 @@ The standard verification for every task (on top of its own checks) is: the new 
 
 ## Phase 4: Design system and main UI
 
-- [ ] **Task 18: Design tokens, emitter and contrast** (M) — §8.3, §13.4
+- [x] **Task 18: Design tokens, emitter and contrast** (M) — §8.3, §13.4
   - Acceptance: `tokens.ts` (themes Midnight/Emerald/Sand, periodGradients, space, radius, motion, type), `applyTokens(root, theme)` sets CSS vars + `data-theme`; `contrast.ts` (WCAG); contrast ≥ 4.5 / 3.0 / 3.0 / 4.5 across every theme × period stop + midpoint; no `#fff` large surfaces in dark themes
   - Verify: `tests/core/tokens.test.ts` (incl. an inline snapshot of the emitted vars), `tests/types/tokens.test-d.ts`
   - Files: `src/design/tokens.ts`, `src/design/contrast.ts`, `tests/core/tokens.test.ts`, `tests/core/contrast.test.ts`, `tests/types/tokens.test-d.ts`
