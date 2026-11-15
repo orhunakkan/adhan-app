@@ -26,6 +26,35 @@ describe('findJsCompatIssues (Safari 15 output check)', () => {
     expect(findJsCompatIssues(code)).toEqual([expect.stringMatching(/lookbehind/i)]);
   });
 
+  it.each([
+    ['Array#toSorted', 'export const a = [3, 1].toSorted();'],
+    ['Array#toReversed', 'export const a = [1].toReversed();'],
+    ['Array#toSpliced', 'export const a = [1].toSpliced(0, 1);'],
+    ['String#isWellFormed', "export const a = 'x'.isWellFormed();"],
+    ['Object.groupBy', 'export const g = Object.groupBy([], (x) => x);'],
+    ['Map.groupBy', 'export const g = Map.groupBy([], (x) => x);'],
+    ['Promise.withResolvers', 'export const p = Promise.withResolvers();'],
+    ['AbortSignal.timeout', 'export const s = AbortSignal.timeout(10);'],
+    ['AbortSignal.any', 'export const s = AbortSignal.any([]);'],
+    ['Array.fromAsync', 'export const a = Array.fromAsync([]);'],
+    ['requestIdleCallback', 'requestIdleCallback(() => {});'],
+    ['new OffscreenCanvas', 'export const c = new OffscreenCanvas(1, 1);'],
+  ])('flags %s, which Safari 15 lacks', (_name, code) => {
+    expect(findJsCompatIssues(code)).toEqual([expect.stringMatching(/not in Safari 15/)]);
+  });
+
+  it('allows feature tests and Safari 15.4 built-ins (at, findLast, structuredClone, Object.hasOwn)', () => {
+    const code = `
+      const a = [1, 2];
+      export const sorted = a.toSorted ? 'yes' : 'no';
+      export const has = typeof requestIdleCallback === 'function';
+      export const x = [a.at(-1), a.findLast((n) => n > 0), structuredClone(a), Object.hasOwn(a, 0)];
+      export const sorted2 = a.slice().sort();
+      export const m = obj['toSorted'];
+    `;
+    expect(findJsCompatIssues(code)).toEqual([]);
+  });
+
   it('parses classic scripts (e.g. a service worker) too', () => {
     expect(findJsCompatIssues('var self2 = this; with (self2) {}')).toEqual([]);
   });

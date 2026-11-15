@@ -86,6 +86,16 @@ describe('azan section', () => {
       preAlertMin: 9,
     });
   });
+  it('dua source select persists the chosen file', () => {
+    m = mountApp({ start: START });
+    openSection(m, 'azan');
+    const sel = q('select[data-key="Dua sesi"]') as HTMLSelectElement;
+    const other = [...sel.options].find((o) => o.value !== sel.value)!.value;
+    sel.value = other;
+    sel.dispatchEvent(new Event('change'));
+    expect(m.app.state().settings.azan.dua.source).toBe(other);
+    expect(JSON.parse(m.store.get('adhan.settings')!).azan.dua.source).toBe(other);
+  });
 });
 
 describe('display section', () => {
@@ -105,9 +115,9 @@ describe('display section', () => {
     expect(document.documentElement.dir).toBe('rtl');
     expect(q('.settings__title').textContent).toBe('الإعدادات');
     expect(q('.next-card__label').textContent).toBe('الصلاة التالية');
-    await expect(q('.settings').outerHTML).toMatchFileSnapshot(
-      './__snapshots__/settings.display.ar.html',
-    );
+    // Generated label ids depend on how many controls earlier tests rendered.
+    const html = q('.settings').outerHTML.replace(/\blabel-\d+\b/g, 'label-N');
+    await expect(html).toMatchFileSnapshot('./__snapshots__/settings.display.ar.html');
   });
 
   it('12-hour clock, seconds, pattern, glass, screensaver and panel interval', () => {
@@ -154,6 +164,20 @@ describe('display section', () => {
       opacity: 0.8,
     });
     expect(qa('.stepper__value').some((o) => o.textContent === '%80')).toBe(true);
+  });
+
+  it('pattern and night-dim switches flip their setting and the live view', () => {
+    m = mountApp({ start: START });
+    openSection(m, 'display');
+    const before = m.app.state().settings.display;
+    q('[data-key="Geometrik desen"]').click();
+    expect(m.app.state().settings.display.pattern).toBe(!before.pattern);
+    expect(q('.sky__pattern').classList.contains('sky__pattern--on')).toBe(!before.pattern);
+    q('[data-key="Gece karartma"]').click();
+    expect(m.app.state().settings.display.nightDim.enabled).toBe(!before.nightDim.enabled);
+    expect(q('[data-key="Gece karartma"]').getAttribute('aria-checked')).toBe(
+      String(!before.nightDim.enabled),
+    );
   });
 });
 

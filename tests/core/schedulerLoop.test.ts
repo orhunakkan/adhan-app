@@ -66,6 +66,58 @@ describe('scheduler loop', () => {
     expect(JSON.parse(h.store.get(KEYS.lastFired)!).at(-1).key).toBe('2026-05-11:isha');
   });
 
+  it.each([
+    [
+      'spring forward (2026-03-08, 02:00 → 03:00)',
+      '2026-03-07T06:00:00Z',
+      ['2026-03-07', '2026-03-08', '2026-03-09'],
+    ],
+    [
+      'fall back (2026-11-01, 02:00 → 01:00)',
+      '2026-10-31T05:00:00Z',
+      ['2026-10-31', '2026-11-01', '2026-11-02'],
+    ],
+  ])('across the US %s: 15 azans in order, each on time once', (_name, startIso, dates) => {
+    h = harness(new Date(startIso), settingsAt()); // 00:00 local on the first date
+    h.scheduler.start();
+    h.clock.advanceBy(72 * H + H); // three local days, whichever length the middle one has
+    const azans = h.azans();
+    expect(azans.map((e) => e.key)).toEqual(
+      dates.flatMap((d) => AZAN_PRAYERS.map((p) => `${d}:${p}`)),
+    );
+    for (const e of azans) {
+      const expected = computeDay(e.key.slice(0, 10), SCHAUMBURG, settingsAt().calc)[e.prayer];
+      expect(e.firedAt.getTime() - expected.getTime(), e.key).toBeGreaterThanOrEqual(0);
+      expect(e.firedAt.getTime() - expected.getTime(), e.key).toBeLessThanOrEqual(1000);
+    }
+    // The sun moves by minutes per day, so the UTC instants do too; the wall clock
+    // jumps by exactly the DST hour between the first and second date only.
+    const wall = (d: Date) => {
+      const [hh, mm] = new Intl.DateTimeFormat('en-GB', {
+        timeZone: SCHAUMBURG.tz,
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      })
+        .format(d)
+        .split(':')
+        .map(Number);
+      return hh! * 60 + mm!;
+    };
+    const utc = (d: Date) => d.getUTCHours() * 60 + d.getUTCMinutes();
+    const jump = dates[0]!.endsWith('03-07') ? 60 : -60;
+    for (const p of AZAN_PRAYERS) {
+      const fired = azans.filter((e) => e.prayer === p).map((e) => e.firedAt);
+      for (const i of [1, 2]) {
+        expect(Math.abs(utc(fired[i]!) - utc(fired[i - 1]!)), `${p} UTC`).toBeLessThanOrEqual(3);
+      }
+      expect(Math.abs(wall(fired[1]!) - wall(fired[0]!) - jump), `${p} wall`).toBeLessThanOrEqual(
+        3,
+      );
+      expect(Math.abs(wall(fired[2]!) - wall(fired[1]!)), `${p} wall`).toBeLessThanOrEqual(3);
+    }
+  });
+
   it('does not repeat or burst after a mid-day reload', () => {
     const store = new MemoryStore();
     h = harness(new Date('2026-05-10T05:00:00Z'), settingsAt(), store);
