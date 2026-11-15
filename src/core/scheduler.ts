@@ -67,14 +67,20 @@ export function parseFiredList(raw: string | null): FiredEntry[] {
 const alreadyFired = (fired: readonly FiredEntry[], key: FiredKey) =>
   fired.some((f) => f.key === key);
 
+const eventsCache = new WeakMap<ThreeDays, DuePrayer[]>();
+
 /** Azan events of the three days, sorted by instant; NaN times (polar extremes) are dropped. */
 function azanEvents(days: ThreeDays): DuePrayer[] {
-  return [days.yesterday, days.today, days.tomorrow]
+  const cached = eventsCache.get(days);
+  if (cached) return cached;
+  const events = [days.yesterday, days.today, days.tomorrow]
     .flatMap((d) =>
       AZAN_PRAYERS.map((prayer) => ({ prayer, key: `${d.dateKey}:${prayer}`, at: d[prayer] })),
     )
     .filter((e) => Number.isFinite(e.at.getTime()))
     .sort((a, b) => a.at.getTime() - b.at.getTime());
+  eventsCache.set(days, events);
+  return events;
 }
 
 /**
@@ -151,6 +157,15 @@ export function createScheduler(deps: {
   let handle: TimerHandle | null = null;
   let days: ThreeDays | null = null;
   let signature: string | null = null;
+  /** The location's date changes on a minute boundary at the earliest: format once a minute. */
+  let keyCache = { minute: Number.NaN, tz: '', key: '' };
+  const todayKey = (now: Date, tz: string) => {
+    const minute = Math.floor(now.getTime() / 60_000);
+    if (minute !== keyCache.minute || tz !== keyCache.tz) {
+      keyCache = { minute, tz, key: dateKeyInZone(now, tz) };
+    }
+    return keyCache.key;
+  };
   const reported = new Set<string>();
   const alerted = new Set<FiredKey>();
   const checked = new Set<FiredKey>();
@@ -177,22 +192,29 @@ export function createScheduler(deps: {
     }
   };
 
-  const readStoredFired = (): FiredEntry[] => {
+  /** Last raw value seen in the store, so an unchanged list is not re-parsed every tick. */
+  let lastRaw: string | null | undefined;
+
+  const readStoredFired = (): FiredEntry[] | null => {
+    let raw: string | null;
     try {
-      return parseFiredList(store.get(KEYS.lastFired));
+      raw = store.get(KEYS.lastFired);
     } catch (err) {
       report('could not read fired azans', err);
-      return [];
+      return null;
     }
+    if (raw === lastRaw) return null;
+    lastRaw = raw;
+    return parseFiredList(raw);
   };
 
   // In memory as well as persisted: a store that can't write must not cause repeats.
-  let fired = readStoredFired();
+  let fired = readStoredFired() ?? [];
 
   /** Merges what another instance (tab) may have written, so neither replays it. */
   const syncFired = () => {
     const stored = readStoredFired();
-    if (stored.some((e) => !alreadyFired(fired, e.key))) {
+    if (stored?.some((e) => !alreadyFired(fired, e.key))) {
       fired = [...fired, ...stored.filter((e) => !alreadyFired(fired, e.key))].slice(
         -FIRED_HISTORY,
       );
@@ -201,7 +223,9 @@ export function createScheduler(deps: {
 
   const persistFired = () => {
     try {
-      store.set(KEYS.lastFired, JSON.stringify(fired));
+      const raw = JSON.stringify(fired);
+      store.set(KEYS.lastFired, raw);
+      lastRaw = raw;
     } catch (err) {
       report('could not persist fired azans', err);
     }
@@ -226,7 +250,7 @@ export function createScheduler(deps: {
       }
       return;
     }
-    const today = dateKeyInZone(now, s.location.tz);
+    const today = todayKey(now, s.location.tz);
     const next: ThreeDays = {
       yesterday: computeDay(addDays(today, -1), s.location, s.calc),
       today: computeDay(today, s.location, s.calc),
@@ -271,7 +295,7 @@ export function createScheduler(deps: {
     if (
       !days ||
       signature !== timesSignature(s) ||
-      days.today.dateKey !== dateKeyInZone(now, s.location.tz)
+      days.today.dateKey !== todayKey(now, s.location.tz)
     ) {
       recompute(now, s);
     }
