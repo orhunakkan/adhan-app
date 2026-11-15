@@ -42,6 +42,10 @@ function start(root: HTMLElement) {
     wakeLock: createBrowserWakeLock(navigator),
     geolocation: createBrowserGeolocation(navigator),
     photoProcessor: createCanvasPhotoProcessor(document),
+    persistStorage:
+      'storage' in navigator && 'persist' in navigator.storage
+        ? () => navigator.storage.persist()
+        : undefined,
     loadPanels: async () => {
       const res = await fetch('/panels/panels.json');
       if (!res.ok) throw new Error(`panels.json: ${res.status}`);

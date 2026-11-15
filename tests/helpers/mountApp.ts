@@ -27,6 +27,7 @@ export interface MountOptions {
   clock?: FakeClock;
   geolocation?: GeolocationPort;
   loadPanels?: () => Promise<unknown>;
+  persistStorage?: () => Promise<boolean>;
 }
 
 export interface Mounted {
@@ -80,6 +81,7 @@ export function mountApp(opts: MountOptions = {}): Mounted {
     loadCities: () => Promise.resolve(testCities()),
     // Tests don't decode images: the 'resized' photo is the upload itself.
     photoProcessor: { resize: (file) => Promise.resolve(file) },
+    ...(opts.persistStorage ? { persistStorage: opts.persistStorage } : {}),
     loadPanels: () => opts.loadPanels?.() ?? Promise.resolve(testPanels()),
     objectUrls: { create: (b) => URL.createObjectURL(b), revoke: (u) => URL.revokeObjectURL(u) },
     createPlayer: () => {

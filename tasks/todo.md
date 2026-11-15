@@ -264,7 +264,7 @@ The standard verification for every task (on top of its own checks) is: the new 
 
 ## Phase 7: PWA and ship-readiness
 
-- [ ] **Task 32: PWA, Apple meta, icons, headers** (M) — §11, §12, §13.7
+- [x] **Task 32: PWA, Apple meta, icons, headers** (M) — §11, §12, §13.7
   - Acceptance: vite-plugin-pwa manifest (standalone, theme color, 180/192/512 icons) and precache (shell, fonts, panels, patterns, silence, cities); Apple meta tags, `viewport-fit=cover`, startup image, safe-area padding; `storage.persist()` after Start (feature-detected); `public/_headers`; icon generation script
   - Verify: build tests for manifest, precache list, meta tags, preloads, `_headers` rules
   - Files: `vite.config.ts`, `index.html`, `public/_headers`, `scripts/build-icons.mjs`, `tests/build/pwa.test.ts`
