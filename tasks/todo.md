@@ -106,7 +106,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/core/scheduler.ts`, `tests/core/scheduler.test.ts`, `tests/core/schedulerLoop.test.ts`
   - Deps: 7, 8, 11
 
-- [ ] **Task 14: App store + `mountApp()` harness + app shell** (M) — §4, §13.2
+- [x] **Task 14: App store + `mountApp()` harness + app shell** (M) — §4, §13.2
   - Acceptance: `createStore` with explicit actions (settings, times, period, nextPrayer, audioStatus, overlay); `createApp(deps)` wires the scheduler, recalculation at local midnight, settings change, and `visibilitychange`/`pageshow`; `mountApp(overrides)` mounts it into happy-dom with all fakes
   - Verify: `tests/dom/app.test.ts`: advancing FakeClock through a prayer dispatches the azan action; midnight triggers recalculation
   - Files: `src/app/store.ts`, `src/app/createApp.ts`, `tests/helpers/mountApp.ts`, `tests/dom/app.test.ts`, `src/main.ts`

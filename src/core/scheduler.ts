@@ -99,8 +99,10 @@ export function createScheduler(deps: {
   store: KeyValueStore;
   getSettings: () => Settings;
   onEvent: (e: SchedulerEvent) => void;
+  /** Called after every tick's decisions; drives the once-a-second UI update. */
+  onTick?: (now: Date, days: ThreeDays | null) => void;
 }): Scheduler {
-  const { clock, store, getSettings, onEvent } = deps;
+  const { clock, store, getSettings, onEvent, onTick } = deps;
   let handle: TimerHandle | null = null;
   let days: ThreeDays | null = null;
   let lastPreAlert: FiredKey | null = null;
@@ -123,6 +125,11 @@ export function createScheduler(deps: {
 
   const tick = () => {
     const now = clock.now();
+    decide(now);
+    onTick?.(now, days);
+  };
+
+  const decide = (now: Date) => {
     const s = getSettings();
     if (!s.location) {
       days = null;
