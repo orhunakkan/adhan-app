@@ -2,7 +2,7 @@
 import type { AppState } from '../app/createApp';
 import { formatTime } from '../core/time';
 import { INTL_LOCALE, prayerName, t } from '../i18n';
-import { h, setText } from './dom';
+import { h, setHidden, setText } from './dom';
 import { createProgressRing } from './progressRing';
 
 const countdownFormats = new Map<string, { pad: Intl.NumberFormat; plain: Intl.NumberFormat }>();
@@ -47,7 +47,7 @@ export function mountNextPrayerCard(host: HTMLElement): { render(s: AppState): v
 
   return {
     render(s) {
-      card.hidden = !s.period;
+      setHidden(card, !s.period);
       const { period } = s;
       if (!period || !s.settings.location) return;
       const lang = s.settings.display.language;

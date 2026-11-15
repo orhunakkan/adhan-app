@@ -21,6 +21,18 @@ export function setAttr(el: Element, name: string, value: string): void {
   if (el.getAttribute(name) !== value) el.setAttribute(name, value);
 }
 
+/** Sets `hidden` only when it changes. */
+export function setHidden(el: HTMLElement, hidden: boolean): void {
+  if (el.hidden !== hidden) el.hidden = hidden;
+}
+
+/** Sets or removes an attribute only when that changes. */
+export function toggleAttr(el: Element, name: string, value: string | null): void {
+  if (value === null) {
+    if (el.hasAttribute(name)) el.removeAttribute(name);
+  } else setAttr(el, name, value);
+}
+
 export function toggleClass(el: Element, name: string, on: boolean): void {
   if (el.classList.contains(name) !== on) el.classList.toggle(name, on);
 }
