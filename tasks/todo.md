@@ -20,7 +20,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `eslint.config.js`, `.stylelintrc.json`, `.prettierrc`, `tests/core/lintRules.test.ts`, `package.json`
   - Deps: 1
 
-- [ ] **Task 3: Vitest projects, ports and fakes** (M) — §4, §13.1, §13.2
+- [x] **Task 3: Vitest projects, ports and fakes** (M) — §4, §13.1, §13.2
   - Acceptance: `vitest.config.ts` with `core`/`dom`/`build` projects (+ TZ-pinned core variants), coverage-v8 thresholds per SPEC, typecheck for `*.test-d.ts`; dom setup file (fake-indexeddb, media play/pause stubs, object URL stubs, matchMedia, wakeLock); `src/core/ports.ts`; helpers `FakeClock`, `FakeMediaPlayer`, `FakeWakeLock`, `MemoryStore`, `seededRng`
   - Verify: `tests/core/helpers.test.ts` exercises every fake; `tests/types/ports.test-d.ts` asserts the fakes satisfy the ports; all scripts from SPEC Commands exist
   - Files: `vitest.config.ts`, `tests/setup/dom.ts`, `src/core/ports.ts`, `tests/helpers/*.ts`, `tests/core/helpers.test.ts`, `tests/types/ports.test-d.ts`
