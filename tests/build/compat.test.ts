@@ -23,3 +23,10 @@ describe('dist/ is Safari 15 compatible', () => {
     },
   );
 });
+
+describe('dist/ CSS keeps the [hidden] guard', () => {
+  it('a hidden element can never stay on screen and catch touches', () => {
+    const all = css.map((f) => readDist(f).toString('utf8')).join('\n');
+    expect(all).toMatch(/\[hidden\]\{display:none\s*!important\}/);
+  });
+});
