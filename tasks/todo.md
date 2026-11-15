@@ -39,14 +39,14 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Deps: 1–4
 
 ### Checkpoint 1: Foundation
-- [ ] `npm run ci` green locally and in GitHub Actions
+- [x] `npm run ci` green locally and in GitHub Actions
 - [ ] Owner (non-blocking): connect Cloudflare Pages, open the smoke build on the iPad from the Home Screen, confirm the prayer time renders
 
 ---
 
 ## Phase 2: Prayer engine (pure)
 
-- [ ] **Task 6: Reference fixtures** (S) — §13.3
+- [x] **Task 6: Reference fixtures** (S) — §13.3
   - Acceptance: `scripts/fetch-fixtures.mjs` (run once, not in CI) writes JSON tables with recorded source/URL/date: Schaumburg ISNA + Turkey for one winter month and one summer month; Istanbul Turkey (Diyanet table, or Aladhan method 13 labeled as such); Oslo June for each high-latitude rule
   - Verify: fixtures validate against a zod fixture schema in `tests/core/fixtures.test.ts`; each file records its source
   - Files: `scripts/fetch-fixtures.mjs`, `tests/fixtures/prayer/*.json`, `tests/core/fixtures.test.ts`
