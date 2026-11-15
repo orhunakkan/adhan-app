@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, dateKeyInZone, parseDateKey, zonedParts } from '../../src/core/time';
+import {
+  addDays,
+  dateKeyInZone,
+  formatDate,
+  formatTime,
+  parseDateKey,
+  zonedParts,
+} from '../../src/core/time';
 
 describe('dateKeyInZone', () => {
   it.each([
@@ -48,5 +55,75 @@ describe('parseDateKey / addDays', () => {
     ['2026-01-31', 30, '2026-03-02'],
   ])('%s %+d days is %s', (key, n, out) => {
     expect(addDays(key, n)).toBe(out);
+  });
+});
+
+describe('formatTime / formatDate in the configured zone', () => {
+  const d = new Date('2026-07-15T18:05:09Z');
+
+  it.each([
+    ['America/Chicago', false, false, '13:05'],
+    ['America/Chicago', true, false, '1:05 PM'],
+    ['Europe/Istanbul', false, true, '21:05:09'],
+    ['Asia/Tokyo', false, false, '03:05'],
+  ])('%s hour12=%s seconds=%s → %s', (tz, hour12, seconds, out) => {
+    const got = formatTime(d, { tz, hour12, seconds, locale: 'en' });
+    // ICU versions differ on the space before AM/PM (U+0020, U+00A0 or U+202F).
+    expect(got.replace(/[\u00a0\u202f]/g, ' ')).toBe(out);
+  });
+
+  it('uses the locale for 12-hour markers', () => {
+    expect(
+      formatTime(d, { tz: 'Europe/Istanbul', hour12: true, seconds: false, locale: 'tr' }),
+    ).toMatch(/^ÖS\s9:05$|^9:05\sÖS$/);
+  });
+
+  it.each([
+    ['tr', '15 Temmuz 2026 Çarşamba'],
+    ['en', 'Wednesday, July 15, 2026'],
+  ])('formats the Gregorian date in %s', (locale, out) => {
+    expect(formatDate(d, { tz: 'Europe/Istanbul', locale })).toBe(out);
+  });
+
+  it('returns the same text from the cached formatter on repeat calls', () => {
+    const f = { tz: 'Europe/Istanbul', locale: 'en' };
+    expect(formatDate(d, f)).toBe(formatDate(d, f));
+  });
+
+  it('formats the Arabic date with Arabic-Indic digits', () => {
+    expect(formatDate(d, { tz: 'Asia/Riyadh', locale: 'ar-u-nu-arab' })).toMatch(/٢٠٢٦/);
+  });
+});
+
+describe('daylight-saving transitions', () => {
+  it('America/Chicago spring-forward: 01:59 CST → 03:00 CDT', () => {
+    const before = new Date('2026-03-08T07:59:00Z');
+    const after = new Date('2026-03-08T08:00:00Z');
+    const fmt = (x: Date) =>
+      formatTime(x, { tz: 'America/Chicago', hour12: false, seconds: false, locale: 'en' });
+    expect([fmt(before), fmt(after)]).toEqual(['01:59', '03:00']);
+    expect(dateKeyInZone(after, 'America/Chicago')).toBe('2026-03-08');
+  });
+
+  it('America/Chicago fall-back: 01:30 happens twice and stays on the same date', () => {
+    const first = new Date('2026-11-01T06:30:00Z');
+    const second = new Date('2026-11-01T07:30:00Z');
+    const fmt = (x: Date) =>
+      formatTime(x, { tz: 'America/Chicago', hour12: false, seconds: false, locale: 'en' });
+    expect([fmt(first), fmt(second)]).toEqual(['01:30', '01:30']);
+    expect(dateKeyInZone(second, 'America/Chicago')).toBe('2026-11-01');
+  });
+
+  it('Europe/Istanbul has no DST: UTC+3 all year', () => {
+    for (const iso of ['2026-01-15T09:00:00Z', '2026-07-15T09:00:00Z']) {
+      expect(
+        formatTime(new Date(iso), {
+          tz: 'Europe/Istanbul',
+          hour12: false,
+          seconds: false,
+          locale: 'en',
+        }),
+      ).toBe('12:00');
+    }
   });
 });

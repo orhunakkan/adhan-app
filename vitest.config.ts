@@ -40,6 +40,18 @@ export default mergeConfig(
             },
           },
         },
+        // The same core suite again under pinned process time zones: results
+        // must never depend on the machine's zone (brief §13.3).
+        ...(['UTC', 'Asia/Tokyo'] as const).map((tz) => ({
+          extends: true as const,
+          test: {
+            name: `core-tz-${tz === 'UTC' ? 'utc' : 'tokyo'}`,
+            environment: 'node' as const,
+            env: { TZ: tz },
+            include: ['tests/core/**/*.test.ts'],
+            exclude: ['tests/core/lintRules.test.ts', 'tests/core/scan.test.ts'],
+          },
+        })),
         {
           extends: true,
           test: {
