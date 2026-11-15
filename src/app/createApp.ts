@@ -187,6 +187,7 @@ export function createApp(deps: AppDeps): App {
   );
   const queue: PrayerEvent[] = [];
   let uploads = 0;
+  let citiesPromise: Promise<City[]> | null = null;
   let persistAsked = false;
   /** Keeps uploads and settings from being evicted (brief §11); asked once. */
   const requestPersistence = () => {
@@ -566,7 +567,12 @@ export function createApp(deps: AppDeps): App {
     ],
     services: {
       geolocation: deps.geolocation,
-      loadCities: deps.loadCities,
+      // One fetch + parse of the 460 KB list per page load, however often it is asked for.
+      loadCities: () =>
+        (citiesPromise ??= deps.loadCities().catch((err: unknown) => {
+          citiesPromise = null;
+          throw err;
+        })),
       saveAudio: async (file) => {
         checkUpload(file, 'audio');
         const key = `a${deps.clock.now().getTime().toString(36)}${(uploads++).toString(36)}`;

@@ -117,7 +117,11 @@ export const locationSection: SettingsSection = {
     };
     input.addEventListener('input', () => {
       if (cities) show();
-      else void ctx.services.loadCities().then((list) => ((cities = list), show()));
+      else
+        void ctx.services.loadCities().then(
+          (list) => ((cities = list), show()),
+          () => results.replaceChildren(h('li', 'results__empty', t(lang, 'location.noResults'))),
+        );
     });
     search.body.append(input, results);
     pane.append(search.el);
@@ -154,6 +158,11 @@ export const locationSection: SettingsSection = {
     const save = actionButton(
       t(lang, 'location.save'),
       () => {
+        // Number('') is 0: a blank field must not silently become 0,0 (wrong times).
+        if (!lat.value.trim() || !lng.value.trim() || !name.value.trim()) {
+          ctx.toast(t(lang, 'settings.invalid'));
+          return;
+        }
         apply(ctx, {
           name: name.value,
           lat: Number(lat.value),

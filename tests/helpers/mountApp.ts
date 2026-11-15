@@ -27,6 +27,7 @@ export interface MountOptions {
   clock?: FakeClock;
   geolocation?: GeolocationPort;
   loadPanels?: () => Promise<unknown>;
+  loadCities?: () => Promise<City[]>;
   persistStorage?: () => Promise<boolean>;
   serviceWorker?: ServiceWorkerPort;
 }
@@ -79,7 +80,7 @@ export function mountApp(opts: MountOptions = {}): Mounted {
     wakeLock,
     chime,
     geolocation: opts.geolocation ?? { getPosition: () => Promise.reject(new Error('denied')) },
-    loadCities: () => Promise.resolve(testCities()),
+    loadCities: opts.loadCities ?? (() => Promise.resolve(testCities())),
     // Tests don't decode images: the 'resized' photo is the upload itself.
     photoProcessor: { resize: (file) => Promise.resolve(file) },
     ...(opts.persistStorage ? { persistStorage: opts.persistStorage } : {}),
