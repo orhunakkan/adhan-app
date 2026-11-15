@@ -52,7 +52,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `scripts/fetch-fixtures.mjs`, `tests/fixtures/prayer/*.json`, `tests/core/fixtures.test.ts`
   - Deps: 3
 
-- [ ] **Task 7: `prayerTimes` core** (M) — §5
+- [x] **Task 7: `prayerTimes` core** (M) — §5
   - Acceptance: `computeDay(date, location, calc)` returns fajr/sunrise/dhuhr/asr/maghrib/isha + `dateKey` for today and tomorrow, for every adhan method, both madhabs, all high-latitude rules, and offsets −30…+30; times compared to fixtures within ±2 min; ascending-order invariant across method × madhab (Isha may cross midnight)
   - Verify: `tests/core/prayerTimes.test.ts` (`describe.each`); Oslo June has no NaN/missing values; offset tests shift exactly
   - Files: `src/core/prayerTimes.ts`, `tests/core/prayerTimes.test.ts`
