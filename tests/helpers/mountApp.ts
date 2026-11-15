@@ -78,6 +78,8 @@ export function mountApp(opts: MountOptions = {}): Mounted {
     chime,
     geolocation: opts.geolocation ?? { getPosition: () => Promise.reject(new Error('denied')) },
     loadCities: () => Promise.resolve(testCities()),
+    // Tests don't decode images: the 'resized' photo is the upload itself.
+    photoProcessor: { resize: (file) => Promise.resolve(file) },
     loadPanels: () => opts.loadPanels?.() ?? Promise.resolve(testPanels()),
     objectUrls: { create: (b) => URL.createObjectURL(b), revoke: (u) => URL.revokeObjectURL(u) },
     createPlayer: () => {

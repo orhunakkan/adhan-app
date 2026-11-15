@@ -19,6 +19,12 @@ export interface SettingsServices {
   saveAudio(file: Blob): Promise<string>;
   /** Bytes used by uploaded files. */
   storageUsed(): Promise<number>;
+  /** Resizes, stores and appends photos to settings.photos. */
+  savePhotos(files: Blob[]): Promise<void>;
+  deletePhoto(key: string): Promise<void>;
+  /** An object URL for a stored photo (caller revokes with revokeUrl), or null. */
+  photoUrl(key: string): Promise<string | null>;
+  revokeUrl(url: string): void;
 }
 
 export interface SettingsContext {

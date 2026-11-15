@@ -229,7 +229,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `public/panels/panels.json`, `src/ui/panels.ts`, `tests/core/panelsData.test.ts`, `tests/dom/panels.test.ts`
   - Deps: 19, 20
 
-- [ ] **Task 30: Photos: upload/resize + slideshow** (M) — §9 Photo screensaver
+- [x] **Task 30: Photos: upload/resize + slideshow** (M) — §9 Photo screensaver
   - Acceptance: resize to ≤ 2048 px with `<canvas>` + `toBlob` (JPEG 0.85), canvas released; store in IndexedDB; Photos settings section (upload/delete); slideshow with Ken Burns + scrim, ≤ 2 `<img>`, immediate revoke; modes panels/photos/alternate; compact clock pill rotating corners every 10 min
   - Verify: `tests/dom/slideshow.test.ts` (20 photos × 2 h: ≤ 2 imgs, revoke count = create count), `tests/dom/photoResize.test.ts`
   - Files: `src/core/photos.ts`, `src/ui/slideshow.ts`, `src/ui/settings/photos.ts`, `tests/dom/slideshow.test.ts`, `tests/dom/photoResize.test.ts`

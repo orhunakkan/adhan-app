@@ -48,6 +48,7 @@ describe('settings shell', () => {
       'calculation',
       'azan',
       'display',
+      'photos',
       'about',
     ]);
     expect(sections[0]!.getAttribute('aria-current')).toBe('page');

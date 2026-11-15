@@ -10,6 +10,7 @@ import type {
   ChimePort,
   Clock,
   GeolocationPort,
+  PhotoProcessor,
   KeyValueStore,
   MediaPlayer,
   ObjectUrls,
@@ -18,6 +19,7 @@ import type {
 } from '../core/ports';
 import type { City } from '../core/cities';
 import { parsePanels, shuffle, type Panel } from '../core/panels';
+import { createPhotoSource } from '../core/photos';
 import type { AzanPrayer } from '../core/prayerTimes';
 import { createScheduler, type PrayerEvent, type SchedulerEvent } from '../core/scheduler';
 import { createWakeLockManager, type WakeLockStatus } from '../core/wakeLock';
@@ -33,6 +35,7 @@ import { mountScreensaver } from '../ui/screensaver';
 import { aboutSection } from '../ui/settings/about';
 import { azanSection } from '../ui/settings/azan';
 import { calculationSection } from '../ui/settings/calculation';
+import { photosSection } from '../ui/settings/photos';
 import { displaySection } from '../ui/settings/display';
 import { locationSection } from '../ui/settings/location';
 import { mountSettings, type SettingsView } from '../ui/settings/shell';
@@ -61,6 +64,7 @@ export interface AppDeps {
   loadCities: () => Promise<City[]>;
   /** Fetches public/panels/panels.json (validated here). */
   loadPanels: () => Promise<unknown>;
+  photoProcessor: PhotoProcessor;
 }
 
 export interface ActiveAzan {
@@ -167,9 +171,17 @@ export function createApp(deps: AppDeps): App {
   const timeline = mountTimeline(layout.timeline);
   const preAlert = mountPreAlert(main);
   let panels: readonly Panel[] = [];
+  const photos = createPhotoSource({
+    blobs: deps.blobs,
+    objectUrls: deps.objectUrls,
+    keys: () => store.get().settings.photos,
+    doc: deps.doc,
+  });
   const screensaver = mountScreensaver(deps.root, {
     clock: deps.clock,
     panels: () => panels,
+    photoSlide: () => photos.slide(),
+    primePhotos: () => photos.prime(),
     suppressed: () => late.settings?.isOpen() ?? false,
   });
   const azanView = mountAzanView(deps.root, {
@@ -320,7 +332,12 @@ export function createApp(deps: AppDeps): App {
   };
   applyDisplay(settings);
   let lastDisplay = settings.display;
+  let lastPhotos = settings.photos;
   store.subscribe((s) => {
+    if (s.settings.photos !== lastPhotos) {
+      lastPhotos = s.settings.photos;
+      photos.reset(); // a deleted photo's prepared URL must not linger
+    }
     if (s.settings.display !== lastDisplay) {
       lastDisplay = s.settings.display;
       applyDisplay(s.settings);
@@ -396,6 +413,8 @@ export function createApp(deps: AppDeps): App {
     dispose() {
       scheduler.stop();
       late.settings?.destroy();
+      screensaver.destroy();
+      photos.reset();
       overlayView.destroy();
       layout.destroy();
       toast.destroy();
@@ -408,7 +427,14 @@ export function createApp(deps: AppDeps): App {
   late.settings = mountSettings(deps.root, {
     app,
     clock: deps.clock,
-    sections: [locationSection, calculationSection, azanSection, displaySection, aboutSection],
+    sections: [
+      locationSection,
+      calculationSection,
+      azanSection,
+      displaySection,
+      photosSection,
+      aboutSection,
+    ],
     services: {
       geolocation: deps.geolocation,
       loadCities: deps.loadCities,
@@ -419,6 +445,27 @@ export function createApp(deps: AppDeps): App {
         return `user:${key}`;
       },
       storageUsed: () => blobBytes(deps.blobs),
+      savePhotos: async (files) => {
+        const keys: string[] = [];
+        for (const file of files) {
+          const resized = await deps.photoProcessor.resize(file);
+          const key = `p${deps.clock.now().getTime().toString(36)}${(uploads++).toString(36)}`;
+          await deps.blobs.set(key, resized);
+          keys.push(key);
+        }
+        const current = store.get().settings.photos;
+        app.updateSettings({ photos: [...current, ...keys] });
+        log.info('photos uploaded', { count: keys.length });
+      },
+      deletePhoto: async (key) => {
+        await deps.blobs.delete(key);
+        app.updateSettings({ photos: store.get().settings.photos.filter((k) => k !== key) });
+      },
+      photoUrl: async (key) => {
+        const blob = await deps.blobs.get(key);
+        return blob ? deps.objectUrls.create(blob) : null;
+      },
+      revokeUrl: (url) => deps.objectUrls.revoke(url),
     },
     background: main,
     matchMedia: (q) => deps.win.matchMedia(q),

@@ -96,5 +96,10 @@
   "about.storage": "Kullanılan depolama",
   "about.reset": "Tüm ayarları sıfırla",
   "about.resetConfirm": "Sıfırlamayı onaylayın",
-  "about.debug": "Tanılama"
+  "about.debug": "Tanılama",
+  "photos.add": "Fotoğraf ekle",
+  "photos.delete": "Sil",
+  "photos.empty": "Henüz fotoğraf yok",
+  "photos.count": "{n} fotoğraf",
+  "photos.item": "Fotoğraf {n}"
 }

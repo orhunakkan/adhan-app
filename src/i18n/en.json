@@ -96,5 +96,10 @@
   "about.storage": "Storage used",
   "about.reset": "Reset all settings",
   "about.resetConfirm": "Confirm reset",
-  "about.debug": "Diagnostics"
+  "about.debug": "Diagnostics",
+  "photos.add": "Add photos",
+  "photos.delete": "Delete",
+  "photos.empty": "No photos yet",
+  "photos.count": "{n} photos",
+  "photos.item": "Photo {n}"
 }

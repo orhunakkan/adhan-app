@@ -2,6 +2,7 @@
 import { createWebAudioChime } from './adapters/chime';
 import { browserClock } from './adapters/clock';
 import { createBrowserGeolocation } from './adapters/geolocation';
+import { createCanvasPhotoProcessor } from './adapters/photoResize';
 import { createIdbBlobStore } from './adapters/idbBlobStore';
 import { createLocalStore } from './adapters/localStore';
 import { createAudioElementPlayer } from './adapters/media';
@@ -40,6 +41,7 @@ function start(root: HTMLElement) {
     },
     wakeLock: createBrowserWakeLock(navigator),
     geolocation: createBrowserGeolocation(navigator),
+    photoProcessor: createCanvasPhotoProcessor(document),
     loadPanels: async () => {
       const res = await fetch('/panels/panels.json');
       if (!res.ok) throw new Error(`panels.json: ${res.status}`);
