@@ -8,6 +8,9 @@ export default mergeConfig(
   defineConfig({
     test: {
       restoreMocks: true,
+      // Benchmarks only run from the dom project's "dom (bench)" companion
+      // (`npm run bench`); every other project gets none, so CI never runs them.
+      benchmark: { include: [] },
       // Day-long FakeClock simulations run ~100k ticks; CI runners with coverage are slower.
       testTimeout: 30_000,
       unstubEnvs: true,
@@ -27,7 +30,6 @@ export default mergeConfig(
           'src/ui/**': { lines: 85, branches: 85, functions: 85, statements: 85 },
         },
       },
-      benchmark: { include: ['tests/bench/**/*.bench.ts'] },
       projects: [
         {
           extends: true,
@@ -60,6 +62,7 @@ export default mergeConfig(
             name: 'dom',
             environment: 'happy-dom',
             include: ['tests/dom/**/*.test.ts'],
+            benchmark: { include: ['tests/bench/**/*.bench.ts'] },
             setupFiles: ['tests/setup/dom.ts'],
           },
         },
