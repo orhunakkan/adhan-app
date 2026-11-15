@@ -128,14 +128,14 @@ Coverage thresholds (CI-failing): `src/core/**` + `src/design/**` ≥ 95% (lines
 
 Verified automatically (by the agent, in CI):
 
-- [ ] `npm run ci` passes from a clean checkout: lint, typecheck, `core` + `dom` with coverage thresholds met, build, `build` project.
-- [ ] Calculated times match reference fixtures within ±2 min (Istanbul Turkey method vs Diyanet's published table; Oslo June under every high-latitude rule vs Aladhan, with no NaN) and the NOAA solar-position oracle within ±90 s for every day of 2026 (Schaumburg, Istanbul, Mecca; ISNA + Turkey; both madhabs); offsets shift exactly.
-- [ ] Scheduler simulations prove: exactly 10 azans in 48 h in correct order; no duplicate or burst after a simulated reload, DST transition or midnight rollover; T−1 s / T / T+119 s / T+121 s boundaries hold.
-- [ ] The audio factory is called exactly once per app lifetime, and every azan reuses that instance. A failed health check shows the danger "Tap to enable azan" overlay.
-- [ ] Every theme × period gradient stop (and midpoint): text-1 ≥ 4.5:1, text-2 ≥ 3:1, accent on surface ≥ 3:1.
-- [ ] Slideshow over 20 photos and 2 simulated hours: ≤ 2 `<img>` in the DOM at any time, every object URL revoked.
-- [ ] `dist/`: JS < 150 KB gzipped, fonts ≤ 400 KB, audio ≤ 30 MB, no file > 25 MiB, < 20,000 files, no `@container` / `color-mix(` / nested CSS rules / static blocks / lookbehind.
-- [ ] Repo contains no Playwright/E2E dependency, no audio except `silence.m4a`, no `.env*`; `LICENSE`, `THIRD_PARTY_NOTICES.md` and font licenses present.
+- [x] `npm run ci` passes from a clean checkout: lint, typecheck, `core` + `dom` with coverage thresholds met, build, `build` project.
+- [x] Calculated times match reference fixtures within ±2 min (Istanbul Turkey method vs Diyanet's published table; Oslo June under every high-latitude rule vs Aladhan, with no NaN) and the NOAA solar-position oracle within ±90 s for every day of 2026 (Schaumburg, Istanbul, Mecca; ISNA + Turkey; both madhabs); offsets shift exactly.
+- [x] Scheduler simulations prove: exactly 10 azans in 48 h in correct order; no duplicate or burst after a simulated reload, DST transition or midnight rollover; T−1 s / T / T+119 s / T+121 s boundaries hold.
+- [x] The audio factory is called exactly once per app lifetime, and every azan reuses that instance. A failed health check shows the danger "Tap to enable azan" overlay.
+- [x] Every theme × period gradient stop (and midpoint): text-1 ≥ 4.5:1, text-2 ≥ 3:1, accent on surface ≥ 3:1.
+- [x] Slideshow over 20 photos and 2 simulated hours: ≤ 2 `<img>` in the DOM at any time, every object URL revoked.
+- [x] `dist/`: JS < 150 KB gzipped, fonts ≤ 400 KB, audio ≤ 30 MB, no file > 25 MiB, < 20,000 files, no `@container` / `color-mix(` / nested CSS rules / static blocks / lookbehind.
+- [x] Repo contains no Playwright/E2E dependency, no audio except `silence.m4a`, no `.env*`; `LICENSE`, `THIRD_PARTY_NOTICES.md` and font licenses present.
 
 Verified manually by the owner on the iPad (agent cannot do these):
 
