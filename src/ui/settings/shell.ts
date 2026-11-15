@@ -15,6 +15,10 @@ export interface SettingsServices {
   geolocation: GeolocationPort;
   /** Lazy: the 460 KB city list is fetched only when the Location section needs it. */
   loadCities(): Promise<City[]>;
+  /** Stores an uploaded audio file in IndexedDB; resolves to its 'user:<key>' source. */
+  saveAudio(file: Blob): Promise<string>;
+  /** Bytes used by uploaded files. */
+  storageUsed(): Promise<number>;
 }
 
 export interface SettingsContext {

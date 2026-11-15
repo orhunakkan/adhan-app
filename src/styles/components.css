@@ -445,3 +445,35 @@
     border-radius: 50%;
   }
 }
+
+@layer components {
+  .row--warning {
+    color: var(--danger-text);
+    background: var(--danger);
+  }
+
+  .row--actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .pill-button--danger {
+    color: var(--danger-text);
+    background: var(--danger);
+  }
+
+  .input {
+    inline-size: 100%;
+    padding-inline: var(--space-3);
+    color: var(--text-1);
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-sm);
+  }
+
+  .results__item {
+    inline-size: 100%;
+    padding-inline: var(--space-4);
+    text-align: start;
+  }
+}

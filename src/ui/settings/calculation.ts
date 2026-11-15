@@ -41,25 +41,27 @@ export const calculationSection: SettingsSection = {
   render(pane, ctx) {
     const lang = ctx.lang;
     const calc = ctx.state.settings.calc;
+    /** Merge against the live settings at click time. */
+    const cur = () => ctx.app.state().settings.calc;
     const main = group();
     main.body.append(
       select(
         t(lang, 'calc.method'),
         CALCULATION_METHODS.map((m) => ({ value: m, label: METHOD_LABELS[m] })),
         calc.method,
-        (method) => update(ctx, { ...calc, method }),
+        (method) => update(ctx, { ...cur(), method }),
       ),
       segmented(
         t(lang, 'calc.madhab'),
         MADHABS.map((m) => ({ value: m, label: t(lang, `calc.madhab.${m}`) })),
         calc.madhab,
-        (madhab) => update(ctx, { ...calc, madhab }),
+        (madhab) => update(ctx, { ...cur(), madhab }),
       ),
       select(
         t(lang, 'calc.highLat'),
         HIGH_LATITUDE_RULES.map((r) => ({ value: r, label: t(lang, `calc.highLat.${r}`) })),
         calc.highLatitudeRule,
-        (highLatitudeRule) => update(ctx, { ...calc, highLatitudeRule }),
+        (highLatitudeRule) => update(ctx, { ...cur(), highLatitudeRule }),
       ),
     );
     pane.append(main.el);
@@ -75,7 +77,7 @@ export const calculationSection: SettingsSection = {
             max: OFFSET_LIMIT_MIN,
             format: (v) => t(lang, 'offset.minutes', { n: v > 0 ? `+${v}` : v }),
           },
-          (v) => update(ctx, { ...calc, offsets: { ...calc.offsets, [p]: v } }),
+          (v) => update(ctx, { ...cur(), offsets: { ...cur().offsets, [p]: v } }),
         ),
       );
     }

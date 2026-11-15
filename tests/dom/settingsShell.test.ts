@@ -43,7 +43,13 @@ describe('settings shell', () => {
     m = mountApp({ start: START });
     longPress(m);
     const sections = [...document.querySelectorAll<HTMLElement>('.settings__section')];
-    expect(sections.map((s) => s.dataset.section)).toEqual(['location', 'calculation', 'about']);
+    expect(sections.map((s) => s.dataset.section)).toEqual([
+      'location',
+      'calculation',
+      'azan',
+      'display',
+      'about',
+    ]);
     expect(sections[0]!.getAttribute('aria-current')).toBe('page');
     expect(sections.every((s) => s.classList.contains('touch-target'))).toBe(true);
     expect(q('.settings__pane')!.dataset.section).toBe('location');

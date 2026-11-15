@@ -210,7 +210,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/ui/settings/location.ts`, `src/ui/settings/calculation.ts`, `tests/dom/settingsLocationCalc.test.ts`
   - Deps: 25, 26
 
-- [ ] **Task 28: Azan, Display and About sections** (M) — §9 Settings, §7
+- [x] **Task 28: Azan, Display and About sections** (M) — §9 Settings, §7
   - Acceptance: per-prayer enable, audio mapping (default makam map), upload to IndexedDB, Test azan, dua toggle, late window; theme, language (RTL), 12/24 h, seconds, panel interval, screensaver mode, pattern, glass, night dim schedule and opacity; About: version, storage used (Blob sum, no `estimate()`), Reset all
   - Verify: `tests/dom/settingsAzanDisplay.test.ts` (Test azan calls the player with the right source, Reset restores defaults, RTL snapshot stable, storage sum without `estimate`)
   - Files: `src/ui/settings/azan.ts`, `src/ui/settings/display.ts`, `src/ui/settings/about.ts`, `tests/dom/settingsAzanDisplay.test.ts`

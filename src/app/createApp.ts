@@ -2,6 +2,7 @@
 // only place that knows about every module; views receive state + callbacks.
 import { settingsSchema, type Settings } from '../config/schema';
 import { createAudioController, type AudioState } from '../core/audio';
+import { blobBytes } from '../core/blobUsage';
 import { createLogger, type Logger } from '../core/logger';
 import { periodAt, type PeriodInfo, type ThreeDays } from '../core/period';
 import type {
@@ -28,7 +29,9 @@ import { mountClockView } from '../ui/clockView';
 import { mountNextPrayerCard } from '../ui/nextPrayerCard';
 import { mountPreAlert } from '../ui/preAlert';
 import { aboutSection } from '../ui/settings/about';
+import { azanSection } from '../ui/settings/azan';
 import { calculationSection } from '../ui/settings/calculation';
+import { displaySection } from '../ui/settings/display';
 import { locationSection } from '../ui/settings/location';
 import { mountSettings, type SettingsView } from '../ui/settings/shell';
 import { mountTimeline } from '../ui/timeline';
@@ -134,6 +137,7 @@ export function createApp(deps: AppDeps): App {
     (e) => log.error('view listener threw', String(e)),
   );
   const queue: PrayerEvent[] = [];
+  let uploads = 0;
   /** When the current azan moment appeared (checked on every tick, no long timers). */
   let azanShownAt = 0;
   /** Audio was asked to play the current azan moment. */
@@ -393,8 +397,18 @@ export function createApp(deps: AppDeps): App {
   late.settings = mountSettings(deps.root, {
     app,
     clock: deps.clock,
-    sections: [locationSection, calculationSection, aboutSection],
-    services: { geolocation: deps.geolocation, loadCities: deps.loadCities },
+    sections: [locationSection, calculationSection, azanSection, displaySection, aboutSection],
+    services: {
+      geolocation: deps.geolocation,
+      loadCities: deps.loadCities,
+      saveAudio: async (file) => {
+        const key = `a${deps.clock.now().getTime().toString(36)}${(uploads++).toString(36)}`;
+        await deps.blobs.set(key, file);
+        log.info('audio uploaded', { key, bytes: file.size });
+        return `user:${key}`;
+      },
+      storageUsed: () => blobBytes(deps.blobs),
+    },
     background: main,
     matchMedia: (q) => deps.win.matchMedia(q),
     toast: (message) => toast.show({ message }),
