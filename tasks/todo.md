@@ -242,8 +242,23 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Deps: 10, 24, 30
 
 ### Checkpoint 6: Feature complete
-- [ ] `npm run ci` green, all coverage thresholds met
-- [ ] Every brief §13.6 bullet maps to a passing test (list in the checkpoint summary)
+- [x] `npm run ci` green, all coverage thresholds met (overall 99.3% lines, 97.9% branches)
+- [x] Every brief §13.6 bullet maps to a passing test:
+  - Full-day simulation → `tests/dom/fullDay.test.ts`
+  - Pre-alert banner → `tests/dom/nextPrayer.test.ts` ("pre-alert pill")
+  - Progress ring 0/50/100% → `tests/dom/progressRing.test.ts`
+  - Clock view 12/24 h, seconds, dates, landscape/portrait snapshots → `tests/dom/clockView.test.ts`
+  - Themes → `tests/dom/fullDay.test.ts` ("themes and pattern"), `tests/dom/app.test.ts`
+  - RTL (dir, lang, ar names, stable snapshot) → `tests/dom/settingsAzanDisplay.test.ts`, `tests/dom/azanView.test.ts`, `tests/dom/i18n.test.ts`
+  - Panels (rotation, Arabic above translation, ≤ 2 nodes) → `tests/dom/panels.test.ts`
+  - Slideshow (20 photos × 2 h, ≤ 2 img, every URL revoked) → `tests/dom/slideshow.test.ts`
+  - Reduced motion → `tests/dom/kiosk.test.ts`
+  - Night dim (01:00, Fajr − 1 min, during azan) → `tests/dom/kiosk.test.ts`
+  - Burn-in (every 10 min, within bounds) → `tests/dom/kiosk.test.ts`
+  - Settings (long-press, PIN, controls persist, live preview, Test azan, invalid input, Reset) → `tests/dom/settingsShell.test.ts`, `settingsLocationCalc.test.ts`, `settingsAzanDisplay.test.ts`, `settingsPhotos.test.ts`
+  - Toast → `tests/dom/toast.test.ts` (update-gate toast lands in task 33)
+  - Debug panel → task 34
+  - Accessibility smoke checks → overlays/settings/controls tests (names, buttons, touch-target, focus trap, aria-live); a dedicated sweep lands in task 38
 
 ---
 
