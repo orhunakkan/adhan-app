@@ -133,6 +133,60 @@ describe('location section', () => {
   });
 });
 
+describe('location input validation', () => {
+  let m: Mounted | undefined;
+  afterEach(() => m?.dispose());
+
+  it('refuses to save blank coordinates as 0,0', () => {
+    m = mountApp({ start: START, location: null });
+    openSection(m, 'location');
+    const [name] = qa('.settings__pane input:not([type="search"])') as HTMLInputElement[];
+    name!.value = 'Home';
+    qa('button')
+      .find((b) => b.textContent === 'Kaydet')!
+      .click();
+    expect(m.app.state().settings.location).toBeNull();
+    expect(q('.toast').textContent).toBe('Geçersiz değer');
+  });
+
+  it('loads the city list once for many keystrokes', async () => {
+    let loads = 0;
+    m = mountApp({ start: START, loadCities: () => (loads++, Promise.resolve(testCities())) });
+    openSection(m, 'location');
+    const input = q('input[type="search"]') as HTMLInputElement;
+    for (const v of ['i', 'is', 'ist', 'ista']) {
+      input.value = v;
+      input.dispatchEvent(new Event('input'));
+    }
+    await flush();
+    m.app.updateSettings({ display: { ...m.app.state().settings.display, glass: true } }); // re-render
+    const again = q('input[type="search"]') as HTMLInputElement;
+    again.value = 'ank';
+    again.dispatchEvent(new Event('input'));
+    await flush();
+    expect(loads).toBe(1);
+    expect(qa('.results__item')[0]!.textContent).toBe('Ankara, TR');
+  });
+
+  it('retries loading the city list after a failure', async () => {
+    let loads = 0;
+    m = mountApp({
+      start: START,
+      loadCities: () =>
+        ++loads === 1 ? Promise.reject(new Error('offline')) : Promise.resolve(testCities()),
+    });
+    openSection(m, 'location');
+    const input = q('input[type="search"]') as HTMLInputElement;
+    input.value = 'oslo';
+    input.dispatchEvent(new Event('input'));
+    await flush();
+    input.dispatchEvent(new Event('input'));
+    await flush();
+    expect(loads).toBe(2);
+    expect(qa('.results__item')[0]!.textContent).toBe('Oslo, NO');
+  });
+});
+
 describe('nearest city', () => {
   it('measures great-circle distance', () => {
     expect(distanceKm({ lat: 0, lng: 0 }, { lat: 0, lng: 1 })).toBeCloseTo(111.2, 0);

@@ -15,6 +15,8 @@ export const citiesFileSchema = z.object({
 export interface City extends Location {
   id: number;
   country: string;
+  /** fold(name), computed once at parse time (search runs on every keystroke). */
+  folded: string;
 }
 
 export function parseCities(json: unknown): City[] {
@@ -22,7 +24,7 @@ export function parseCities(json: unknown): City[] {
   return file.cities.map(([name, country, lat, lng, tzi], id) => {
     const tz = file.tz[tzi];
     if (!tz) throw new Error(`City ${name} has an unknown zone index ${tzi}`);
-    return { id, name, country, lat, lng, tz };
+    return { id, name, country, lat, lng, tz, folded: fold(name) };
   });
 }
 
@@ -38,7 +40,7 @@ export function searchCities(cities: readonly City[], query: string, limit = 20)
   const prefix: City[] = [];
   const contains: City[] = [];
   for (const c of cities) {
-    const n = fold(c.name);
+    const n = c.folded;
     if (n.startsWith(qf)) prefix.push(c);
     else if (n.includes(qf)) contains.push(c);
     if (prefix.length >= limit) break;
