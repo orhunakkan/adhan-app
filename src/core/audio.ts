@@ -94,6 +94,15 @@ export function createAudioController(deps: {
     if (state.missing.includes(source)) set({ missing: state.missing.filter((s) => s !== source) });
   };
 
+  /** Fire-and-forget chime that can never throw into the controller. */
+  const safeChime = () => {
+    try {
+      deps.chime.play().catch((e: unknown) => deps.log.error('chime failed', String(e)));
+    } catch (e) {
+      deps.log.error('chime failed', String(e));
+    }
+  };
+
   const revoke = (url: string | null) => {
     if (url?.startsWith('blob:')) deps.objectUrls.revoke(url);
   };
@@ -204,7 +213,7 @@ export function createAudioController(deps: {
       if (result === 'notAllowed') {
         deps.log.warn('play() not allowed: unlock lost', { source });
         // Best effort: Web Audio has its own unlock and may still sound.
-        if (a.phase === 'azan') void deps.chime.play();
+        if (a.phase === 'azan') safeChime();
         finish(a, 'blocked');
         return;
       }
@@ -346,7 +355,12 @@ export function createAudioController(deps: {
   return {
     async unlock() {
       ensurePlayer();
-      deps.chime.unlock();
+      try {
+        deps.chime.unlock();
+      } catch (e) {
+        // Web Audio is only the fallback; the element unlock must still happen.
+        deps.log.error('chime unlock failed', String(e));
+      }
       // A tap must not cut off audio that is actually playing; anything else
       // (starting, interrupted, a test) gives way so the gesture re-unlocks.
       if (attempt && state.status === 'playing') return true;

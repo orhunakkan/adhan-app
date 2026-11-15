@@ -132,4 +132,88 @@ describe('azan moment lifecycle (review cycle 2)', () => {
     await flush();
     expect(m.app.state().audio.status).toBe('playing'); // fell back to the bundled file
   });
+
+  it('cycle 3 #1: a view that throws on the azan render cannot keep the moment up', async () => {
+    m = mountApp({ start: START });
+    await m.app.tapStart();
+    m.app.subscribe((st) => {
+      if (st.azan) throw new Error('view crashed');
+    });
+    await m.clock.advanceToAsync(new Date(times(m).dhuhr.getTime() + 1000));
+    await flush();
+    expect(m.player!.src).toBe('/audio/ussak.m4a'); // played at once despite the throw
+    m.player!.finish();
+    await flush();
+    expect(m.app.state().azan).toBeNull();
+    expect(m.app.log.entries().some((e) => e.msg === 'view listener threw')).toBe(true);
+    await m.clock.advanceToAsync(new Date(times(m).asr.getTime() + 1000));
+    await flush();
+    expect(m.player!.src).toBe('/audio/rast.m4a');
+  });
+
+  it('cycle 3 #3: chime fallback inside the replay tap still closes the moment', async () => {
+    const audioCfg = {
+      ...defaultSettings.azan,
+      audio: { ...defaultSettings.azan.audio, dhuhr: 'user:gone' },
+    };
+    m = mountApp({ start: START, settings: { azan: audioCfg } });
+    await m.app.tapStart();
+    await m.clock.advanceToAsync(new Date(times(m).dhuhr.getTime() - 60_000));
+    m.player!.rejectNextPlay('NotAllowedError');
+    await m.clock.advanceToAsync(new Date(times(m).dhuhr.getTime() + 1000));
+    expect(m.app.state().overlay).toBe('enableAzan');
+    m.player!.rejectNextPlay('NotSupportedError'); // the silent clip in the tap: lenient
+    const tap = m.app.tapStart();
+    await flush();
+    m.player!.rejectNextPlay('NotSupportedError'); // the bundled file in the replay
+    await tap;
+    await flush();
+    await m.clock.advanceByAsync(5000);
+    expect(m.chime.played).toBeGreaterThanOrEqual(1);
+    expect(m.app.state().azan).toBeNull();
+  });
+
+  it('cycle 3 #4: after a bfcache restore the azan is still attempted; a block shows the loud overlay', async () => {
+    m = mountApp({ start: START });
+    await m.app.tapStart();
+    window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }));
+    expect(m.app.state().overlay).toBe('start');
+    await m.clock.advanceToAsync(new Date(times(m).dhuhr.getTime() - 60_000));
+    m.player!.rejectNextPlay('NotAllowedError');
+    await m.clock.advanceToAsync(new Date(times(m).dhuhr.getTime() + 1000));
+    await flush();
+    expect(m.app.state().overlay).toBe('enableAzan');
+    await m.clock.advanceByAsync(4 * 60_000);
+    await m.app.tapStart();
+    await flush();
+    expect(m.player!.src).toBe('/audio/ussak.m4a');
+    expect(m.app.state().audio.status).toBe('playing');
+  });
+
+  it('cycle 3 #4: after a bfcache restore, if playback is still allowed, the azan plays', async () => {
+    m = mountApp({ start: START });
+    await m.app.tapStart();
+    window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true }));
+    await m.clock.advanceToAsync(new Date(times(m).dhuhr.getTime() + 1000));
+    await flush();
+    expect(m.player!.src).toBe('/audio/ussak.m4a');
+  });
+
+  it('cycle 3 #5/#6: a throwing chime never blocks the unlock or the blocked overlay', async () => {
+    m = mountApp({ start: START });
+    m.chime.unlock = () => {
+      throw new Error('AudioContext unavailable');
+    };
+    m.chime.play = () => {
+      throw new Error('AudioContext unavailable');
+    };
+    await m.app.tapStart();
+    expect(m.app.state().audio.status).toBe('ready');
+    await m.clock.advanceToAsync(new Date(times(m).dhuhr.getTime() - 60_000));
+    m.player!.rejectNextPlay('NotAllowedError');
+    await m.clock.advanceToAsync(new Date(times(m).dhuhr.getTime() + 1000));
+    await flush();
+    expect(m.app.state().overlay).toBe('enableAzan');
+    expect(m.app.state().audio.phase).toBeNull();
+  });
 });
