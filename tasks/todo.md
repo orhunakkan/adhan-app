@@ -204,7 +204,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `scripts/build-cities.mjs`, `public/data/cities.json`, `src/core/cities.ts`, `tests/core/cities.test.ts`
   - Deps: 11
 
-- [ ] **Task 27: Location and Calculation sections + live preview** (M) — §5, §8.8
+- [x] **Task 27: Location and Calculation sections + live preview** (M) — §5, §8.8
   - Acceptance: "Use my location" (injected geolocation, used once), manual lat/lng + timezone picker, city search; method, madhab, high-latitude rule, per-prayer offset steppers; every change validates, persists, and updates the clock behind the sheet immediately
   - Verify: `tests/dom/settingsLocationCalc.test.ts` (invalid input rejected, persistence, live preview changes the times shown)
   - Files: `src/ui/settings/location.ts`, `src/ui/settings/calculation.ts`, `tests/dom/settingsLocationCalc.test.ts`

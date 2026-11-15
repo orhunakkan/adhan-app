@@ -1,12 +1,14 @@
 // Bootstrap: the only module that creates real browser adapters (brief §3, §16).
 import { createWebAudioChime } from './adapters/chime';
 import { browserClock } from './adapters/clock';
+import { createBrowserGeolocation } from './adapters/geolocation';
 import { createIdbBlobStore } from './adapters/idbBlobStore';
 import { createLocalStore } from './adapters/localStore';
 import { createAudioElementPlayer } from './adapters/media';
 import { mathRng } from './adapters/rng';
 import { createBrowserWakeLock } from './adapters/wakeLock';
 import { createApp } from './app/createApp';
+import { parseCities } from './core/cities';
 import './styles/base.css';
 import './styles/components.css';
 import './styles/views.css';
@@ -37,5 +39,11 @@ function start(root: HTMLElement) {
       revoke: (url) => URL.revokeObjectURL(url),
     },
     wakeLock: createBrowserWakeLock(navigator),
+    geolocation: createBrowserGeolocation(navigator),
+    loadCities: async () => {
+      const res = await fetch('/data/cities.json');
+      if (!res.ok) throw new Error(`cities.json: ${res.status}`);
+      return parseCities(await res.json());
+    },
   });
 }

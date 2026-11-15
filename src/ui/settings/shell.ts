@@ -2,7 +2,8 @@
 // optionally behind a 4-digit PIN. Landscape: sidebar + pane. Portrait:
 // drill-down list. A translucent sheet, so changes preview live behind it.
 import type { App, AppState } from '../../app/createApp';
-import type { Clock, TimerHandle } from '../../core/ports';
+import type { City } from '../../core/cities';
+import type { Clock, GeolocationPort, TimerHandle } from '../../core/ports';
 import { t, type Lang, type MessageKey } from '../../i18n';
 import { h, toggleClass } from '../dom';
 
@@ -10,8 +11,15 @@ export const LONG_PRESS_MS = 3000;
 
 export type SectionId = 'location' | 'calculation' | 'azan' | 'display' | 'photos' | 'about';
 
+export interface SettingsServices {
+  geolocation: GeolocationPort;
+  /** Lazy: the 460 KB city list is fetched only when the Location section needs it. */
+  loadCities(): Promise<City[]>;
+}
+
 export interface SettingsContext {
   app: App;
+  services: SettingsServices;
   state: AppState;
   lang: Lang;
   /** Re-render the current pane (e.g. after an async upload). */
@@ -41,6 +49,7 @@ export function mountSettings(
     background: HTMLElement;
     matchMedia: (q: string) => MediaQueryList;
     toast: (message: string) => void;
+    services: SettingsServices;
   },
 ): SettingsView {
   const hotspot = h('button', 'settings-hotspot');
@@ -77,6 +86,7 @@ export function mountSettings(
 
   const ctx = (): SettingsContext => ({
     app: deps.app,
+    services: deps.services,
     state: deps.app.state(),
     lang: lang(),
     refresh: () => draw(true),
@@ -183,24 +193,44 @@ export function mountSettings(
     return el;
   };
 
-  /** Rebuilds the open layer, keeping focus on the same control when possible. */
-  const draw = (force = false) => {
+  /**
+   * Safari does not focus a tapped button, so remember the last control the
+   * user touched: after a re-render, focus (and the pane scroll) return to it.
+   */
+  let lastKey: string | undefined;
+  layer.addEventListener(
+    'click',
+    (e) => {
+      lastKey = (e.target as HTMLElement | null)?.closest<HTMLElement>('[data-key]')?.dataset.key;
+    },
+    true,
+  );
+
+  /** Rebuilds the open layer, keeping focus and scroll on the same control when possible. */
+  const draw = (force = false, opening = false) => {
     if (!open) return;
     const s = deps.app.state();
     const key = `${unlocked}|${current}|${drilled}|${portrait.matches}`;
     if (!force && s.settings === renderedSettings && key === renderedKey) return;
+    const sameView = !opening && key === renderedKey;
     renderedSettings = s.settings;
     renderedKey = key;
-    const focusKey = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>(
-      '[data-key]',
-    )?.dataset.key;
+    const scroll = layer.querySelector('.settings__pane')?.scrollTop ?? 0;
+    const active = document.activeElement as HTMLElement | null;
+    const focusKey =
+      (active && layer.contains(active)
+        ? active.closest<HTMLElement>('[data-key]')?.dataset.key
+        : undefined) ?? lastKey;
     layer.replaceChildren(unlocked ? sheet() : pinPad());
+    const pane = layer.querySelector('.settings__pane');
+    if (pane && sameView) pane.scrollTop = scroll;
     const target = focusKey
       ? [...layer.querySelectorAll<HTMLElement>('[data-key]')].find(
           (e) => e.dataset.key === focusKey,
         )
       : undefined;
-    (target ?? layer.querySelector<HTMLElement>('button'))?.focus();
+    if (target && sameView) target.focus({ preventScroll: true });
+    else if (!sameView) layer.querySelector<HTMLElement>('button')?.focus();
   };
 
   const view: SettingsView = {
@@ -210,7 +240,8 @@ export function mountSettings(
       drilled = false;
       layer.hidden = false;
       deps.background.inert = true;
-      draw(true);
+      lastKey = undefined;
+      draw(true, true);
     },
     close() {
       open = false;
