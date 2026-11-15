@@ -99,15 +99,21 @@ export function computeDay(dateKey: DateKey, location: Location, calc: CalcSetti
     new Date(year, month - 1, day, 12),
     params,
   );
+  // adhan rounds most times to the minute but can leave its high-latitude
+  // "safe" Fajr/Isha half a second off, which breaks ordering when they meet.
   return {
     dateKey,
-    fajr: t.fajr,
-    sunrise: t.sunrise,
-    dhuhr: t.dhuhr,
-    asr: t.asr,
-    maghrib: t.maghrib,
-    isha: t.isha,
+    fajr: toMinute(t.fajr),
+    sunrise: toMinute(t.sunrise),
+    dhuhr: toMinute(t.dhuhr),
+    asr: toMinute(t.asr),
+    maghrib: toMinute(t.maghrib),
+    isha: toMinute(t.isha),
   };
+}
+
+function toMinute(d: Date): Date {
+  return new Date(Math.round(d.getTime() / 60_000) * 60_000);
 }
 
 /** Today's and tomorrow's times, where "today" is the calendar date at the location. */
