@@ -10,6 +10,9 @@ import {
   themes,
   type ThemeName,
 } from '../design/tokens';
+import { prayerIcon } from './icons';
+import { createProgressRing } from './progressRing';
+import { CHIP_STATES } from './timeline';
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text?: string) => {
   const e = document.createElement(tag);
@@ -66,6 +69,28 @@ function themeSection(theme: ThemeName): HTMLElement {
   const toast = el('div', 'toast', 'Update available');
   components.append(card, pill, accent, start, danger, toast);
   section.append(components);
+
+  const rings = el('div', 'sg-row');
+  for (const p of [0, 0.25, 0.5, 1]) {
+    const wrap = el('div', 'next-card__ring sg-ring');
+    const ring = createProgressRing();
+    ring.setProgress(p);
+    wrap.append(ring.el, el('span', 'sg-label', `${p * 100}%`));
+    rings.append(wrap);
+  }
+  section.append(rings);
+
+  const chips = el('ol', 'timeline');
+  CHIP_STATES.forEach((state, i) => {
+    const li = el('li', `chip chip--${state}`);
+    li.append(
+      prayerIcon(PRAYERS[i]!),
+      el('span', 'chip__name', state),
+      el('span', 'chip__time', '12:34'),
+    );
+    chips.append(li);
+  });
+  section.append(chips, el('div', 'prealert sg-static', 'Akşam vaktine 10 dk'));
 
   for (const s of samples) {
     const host = el('div', 'sg-sample');
