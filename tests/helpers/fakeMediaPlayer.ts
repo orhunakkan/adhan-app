@@ -8,6 +8,8 @@ export class FakeMediaPlayer implements MediaPlayer {
   duration = Number.NaN;
   paused = true;
   private nextPlayError: string | null = null;
+  private held: { resolve: () => void; reject: (name: string) => void } | null = null;
+  private holdNext = false;
   private readonly listeners = new Map<MediaEvent, Set<() => void>>();
 
   setSrc(url: string): void {
@@ -18,6 +20,18 @@ export class FakeMediaPlayer implements MediaPlayer {
 
   play(): Promise<void> {
     this.calls.push('play');
+    if (this.holdNext) {
+      this.holdNext = false;
+      return new Promise((resolve, reject) => {
+        this.held = {
+          resolve: () => {
+            this.paused = false;
+            resolve();
+          },
+          reject: (name) => reject(Object.assign(new Error(name), { name })),
+        };
+      });
+    }
     if (this.nextPlayError) {
       const name = this.nextPlayError;
       this.nextPlayError = null;
@@ -43,6 +57,18 @@ export class FakeMediaPlayer implements MediaPlayer {
     return () => set.delete(fn);
   }
 
+  /** Keeps the next play() pending until release() settles it. */
+  holdNextPlay(): void {
+    this.holdNext = true;
+  }
+
+  release(rejectWith?: string): void {
+    const h = this.held;
+    this.held = null;
+    if (rejectWith) h?.reject(rejectWith);
+    else h?.resolve();
+  }
+
   /** Makes the next play() reject with an error of the given name (e.g. NotAllowedError). */
   rejectNextPlay(name = 'NotAllowedError'): void {
     this.nextPlayError = name;
@@ -56,6 +82,15 @@ export class FakeMediaPlayer implements MediaPlayer {
   setPosition(currentTime: number, duration: number): void {
     this.currentTime = currentTime;
     this.duration = duration;
+  }
+
+  /** Plays to the end the way a real element does: `pause` fires, then `ended`. */
+  finish(): void {
+    const d = Number.isFinite(this.duration) ? this.duration : 1;
+    this.setPosition(d, d);
+    this.paused = true;
+    this.emit('pause');
+    this.emit('ended');
   }
 
   /** Simulates the OS pausing playback (Siri, an alarm, a call). */
