@@ -10,6 +10,9 @@ export function createServiceWorker(nav: Navigator, loc: Location): ServiceWorke
       wb.addEventListener('waiting', () => onWaiting());
       void wb.register();
     },
+    checkForUpdate() {
+      void wb.update();
+    },
     applyUpdate() {
       wb.addEventListener('controlling', () => loc.reload());
       wb.messageSkipWaiting();

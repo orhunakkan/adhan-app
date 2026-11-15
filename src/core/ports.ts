@@ -91,4 +91,6 @@ export interface ServiceWorkerPort {
   register(onWaiting: () => void): void;
   /** Activates the waiting worker; the page reloads once it takes control. */
   applyUpdate(): void;
+  /** Asks the browser to look for a new worker (a kiosk page never navigates). */
+  checkForUpdate(): void;
 }

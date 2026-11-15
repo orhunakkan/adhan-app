@@ -11,7 +11,8 @@ const manifest = JSON.parse(readDist('manifest.webmanifest').toString('utf8')) a
   icons: Array<{ src: string; sizes: string }>;
 };
 const sw = readDist('sw.js').toString('utf8');
-const precached = [...sw.matchAll(/url:"([^"]+)"/g)].map((m) => m[1]!);
+// The manifest is injected as JSON ("url":"…") or minified JS (url:"…").
+const precached = [...sw.matchAll(/"?url"?:"([^"]+)"/g)].map((m) => m[1]!);
 const html = readDist('index.html').toString('utf8');
 
 describe('manifest.webmanifest', () => {
@@ -43,6 +44,16 @@ describe('service worker precache', () => {
     expect(required.length).toBeGreaterThan(10);
     for (const f of required) expect(precached, f).toContain(f);
     expect(precached).toContain('audio/silence.m4a');
+  });
+
+  it('serves audio with Range-request support (Safari media requests) and honours SKIP_WAITING', () => {
+    expect(sw).toMatch(/[Rr]ange/);
+    expect(sw).toContain('206');
+    expect(sw).toContain('SKIP_WAITING');
+  });
+
+  it('is a classic script (Safari 15 has no module service workers)', () => {
+    expect(sw).not.toMatch(/^\s*(import|export)\s/m);
   });
 
   it('does not precache the large iPad startup images', () => {

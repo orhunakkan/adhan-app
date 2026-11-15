@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 const listeners = new Map<string, () => void>();
 const register = vi.fn(() => Promise.resolve());
 const messageSkipWaiting = vi.fn();
+const update = vi.fn(() => Promise.resolve());
 vi.mock('workbox-window', () => ({
   Workbox: class {
     addEventListener(type: string, fn: () => void) {
@@ -10,6 +11,7 @@ vi.mock('workbox-window', () => ({
     }
     register = register;
     messageSkipWaiting = messageSkipWaiting;
+    update = update;
   },
 }));
 
@@ -31,6 +33,8 @@ describe('createServiceWorker', () => {
     expect(register).toHaveBeenCalled();
     listeners.get('waiting')!();
     expect(onWaiting).toHaveBeenCalled();
+    sw.checkForUpdate();
+    expect(update).toHaveBeenCalled();
     sw.applyUpdate();
     expect(messageSkipWaiting).toHaveBeenCalled();
     listeners.get('controlling')!();

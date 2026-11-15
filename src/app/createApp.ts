@@ -187,6 +187,7 @@ export function createApp(deps: AppDeps): App {
   );
   const queue: PrayerEvent[] = [];
   let uploads = 0;
+  let lastUpdateCheck: string | null = null;
   let citiesPromise: Promise<City[]> | null = null;
   let persistAsked = false;
   /** Keeps uploads and settings from being evicted (brief §11); asked once. */
@@ -346,6 +347,12 @@ export function createApp(deps: AppDeps): App {
   const onEvent = (e: SchedulerEvent) => {
     if (e.type === 'day') {
       store.update(withPeriod(e.firedAt, e.days));
+      // Once per calendar day: the kiosk never navigates, so ask for new deploys.
+      const day = e.days?.today.dateKey;
+      if (day && day !== lastUpdateCheck) {
+        if (lastUpdateCheck !== null) deps.serviceWorker?.checkForUpdate();
+        lastUpdateCheck = day;
+      }
     } else if (e.type === 'azan') {
       log.info('azan', { key: e.key });
       if (store.get().azan) queue.push(e);

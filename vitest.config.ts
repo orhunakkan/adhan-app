@@ -18,7 +18,8 @@ export default mergeConfig(
       coverage: {
         provider: 'v8',
         include: ['src/**/*.ts'],
-        exclude: ['src/main.ts', 'src/**/*.d.ts', 'src/core/ports.ts'],
+        // sw.ts is bundled separately and checked by the build tests against dist/sw.js.
+        exclude: ['src/main.ts', 'src/sw.ts', 'src/**/*.d.ts', 'src/core/ports.ts'],
         reporter: ['text-summary', 'text', 'html', 'json-summary'],
         thresholds: {
           lines: 90,
