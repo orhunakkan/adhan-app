@@ -116,3 +116,45 @@ export function formatDate(date: Date, f: { tz: string; locale: string }): strin
   }
   return fmt.format(date);
 }
+
+export interface TimeParts {
+  /** "14:05" / "2:05" (localised digits). */
+  hm: string;
+  /** "09" or "" when seconds are off. */
+  seconds: string;
+  /** "PM" / "ÖS" in 12-hour mode, otherwise "". */
+  dayPeriod: string;
+}
+
+const partFormatters = new Map<string, Intl.DateTimeFormat>();
+
+/** The clock split into parts so the view can style seconds and AM/PM separately. */
+export function timeParts(date: Date, f: TimeFormat): TimeParts {
+  const key = `${f.locale}|${f.tz}|${f.hour12}`;
+  let fmt = partFormatters.get(key);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat(f.locale, {
+      timeZone: f.tz,
+      hour: f.hour12 ? 'numeric' : '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: f.hour12 ? 'h12' : 'h23',
+    });
+    partFormatters.set(key, fmt);
+  }
+  const parts = fmt.formatToParts(date);
+  const value = (t: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === t)!.value;
+  // Hour, the locale's separator and minute, exactly as the locale writes them.
+  const hm = parts
+    .slice(
+      parts.findIndex((p) => p.type === 'hour'),
+      parts.findIndex((p) => p.type === 'minute') + 1,
+    )
+    .map((p) => p.value)
+    .join('');
+  return {
+    hm,
+    seconds: f.seconds ? value('second') : '',
+    dayPeriod: f.hour12 ? value('dayPeriod') : '',
+  };
+}

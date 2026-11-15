@@ -1,0 +1,96 @@
+@layer views {
+  .app-main {
+    position: relative;
+    min-block-size: calc(100dvh - 2 * var(--space-5));
+  }
+
+  .layout {
+    display: grid;
+    gap: var(--space-6);
+    min-block-size: inherit;
+  }
+
+  .layout--landscape,
+  .layout:not(.layout--portrait) {
+    grid-template:
+      'clock next' 1fr
+      'timeline timeline' auto / 3fr 2fr;
+    align-items: center;
+  }
+
+  .layout--portrait {
+    grid-template:
+      'clock' auto
+      'next' auto
+      'timeline' 1fr / 1fr;
+  }
+
+  @media (orientation: portrait) {
+    .layout {
+      grid-template:
+        'clock' auto
+        'next' auto
+        'timeline' 1fr / 1fr;
+    }
+  }
+
+  .zone--clock {
+    grid-area: clock;
+  }
+
+  .zone--next {
+    grid-area: next;
+  }
+
+  .zone--timeline {
+    grid-area: timeline;
+  }
+
+  /* Clock: readable from about 4 m (brief §8.2). */
+  .clock__time {
+    display: flex;
+    align-items: baseline;
+    font-size: var(--type-clock);
+    font-weight: 250;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    direction: ltr;
+  }
+
+  :root:lang(ar) .clock__time {
+    justify-content: flex-end;
+    font-weight: 300;
+  }
+
+  .clock__sec,
+  .clock__ampm {
+    margin-inline-start: 0.08em;
+    font-size: 0.32em;
+    font-weight: 400;
+    color: var(--text-2);
+    letter-spacing: 0;
+  }
+
+  .clock__date,
+  .clock__hijri,
+  .clock__location,
+  .clock__prompt {
+    margin-block-start: var(--space-3);
+    font-size: var(--type-secondary);
+    color: var(--text-2);
+  }
+
+  .clock__date {
+    margin-block-start: var(--space-5);
+    color: var(--text-1);
+  }
+
+  .clock__location {
+    font-size: calc(var(--type-secondary) * 0.85);
+  }
+
+  .clock__prompt {
+    max-inline-size: 32ch;
+    color: var(--accent);
+  }
+}
