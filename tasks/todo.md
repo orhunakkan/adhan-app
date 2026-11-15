@@ -26,7 +26,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `vitest.config.ts`, `tests/setup/dom.ts`, `src/core/ports.ts`, `tests/helpers/*.ts`, `tests/core/helpers.test.ts`, `tests/types/ports.test-d.ts`
   - Deps: 1
 
-- [ ] **Task 4: Build verification project (compat, budgets, hygiene)** (M) — §13.7
+- [x] **Task 4: Build verification project (compat, budgets, hygiene)** (M) — §13.7
   - Acceptance: `tests/build/` checks every `dist/` JS file parses with acorn (ES2022) with no `StaticBlock` and no lookbehind; CSS has no `@container`/`color-mix(`/nested rules; JS < 150 KB gz, fonts ≤ 400 KB, audio ≤ 30 MB, no file > 25 MiB, < 20,000 files; `git ls-files public/audio` is only `silence.m4a` (never skipped when `CI`); no `.env*` tracked; `LICENSE` exists. Manifest/SW/meta/headers checks come in task 32
   - Verify: `npm run build && npm run test:build` green on the smoke build; a temp fixture with a static block and `color-mix(` makes the checks fail (unit-tested against the checker functions in `tests/build/lib/`)
   - Files: `tests/build/compat.test.ts`, `tests/build/budgets.test.ts`, `tests/build/hygiene.test.ts`, `tests/build/lib/scan.ts`, `tests/core/scan.test.ts`

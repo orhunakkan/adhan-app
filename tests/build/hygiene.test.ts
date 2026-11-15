@@ -1,0 +1,61 @@
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { ROOT } from './lib/dist';
+
+function gitLsFiles(...args: string[]): string[] | null {
+  try {
+    const out = execFileSync('git', ['ls-files', ...args], { cwd: ROOT, encoding: 'utf8' });
+    return out.split('\n').filter(Boolean);
+  } catch {
+    return null;
+  }
+}
+
+const tracked = gitLsFiles();
+const inCi = Boolean(process.env.CI);
+
+describe('public-repo hygiene', () => {
+  it('runs inside a git checkout (required in CI)', () => {
+    if (inCi) expect(tracked).not.toBeNull();
+  });
+
+  it.skipIf(!tracked && !inCi)('tracks no audio except public/audio/silence.m4a', () => {
+    const audio = gitLsFiles('public/audio') ?? [];
+    expect(audio.filter((f) => f !== 'public/audio/silence.m4a')).toEqual([]);
+    const anyAudio = (tracked ?? []).filter((f) => /\.(m4a|mp3|aac|wav|ogg|flac)$/i.test(f));
+    expect(anyAudio.filter((f) => f !== 'public/audio/silence.m4a')).toEqual([]);
+  });
+
+  it.skipIf(!tracked && !inCi)('tracks no .env files', () => {
+    expect((tracked ?? []).filter((f) => /(^|\/)\.env/.test(f))).toEqual([]);
+  });
+
+  it('.gitignore keeps azan audio out of the repo', () => {
+    const lines = readFileSync(join(ROOT, '.gitignore'), 'utf8')
+      .split('\n')
+      .map((l) => l.trim());
+    expect(lines).toContain('public/audio/*');
+    expect(lines).toContain('!public/audio/silence.m4a');
+    for (const entry of ['node_modules/', 'dist/', 'coverage/', '.wrangler/', '.env*']) {
+      expect(lines).toContain(entry);
+    }
+  });
+
+  it('ships an MIT LICENSE', () => {
+    expect(readFileSync(join(ROOT, 'LICENSE'), 'utf8')).toMatch(/MIT License/);
+  });
+
+  it('has no Playwright or other browser-automation dependency', () => {
+    const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as Record<
+      string,
+      Record<string, string> | undefined
+    >;
+    const deps = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies });
+    const banned =
+      /playwright|puppeteer|cypress|webdriver|selenium|@vitest\/browser|chrome-devtools-mcp|lighthouse/i;
+    expect(deps.filter((d) => banned.test(d))).toEqual([]);
+    expect(existsSync(join(ROOT, 'playwright.config.ts'))).toBe(false);
+  });
+});
