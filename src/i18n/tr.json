@@ -20,5 +20,8 @@
   "location.missing": "Konum ayarlanmadı",
   "location.prompt": "Namaz vakitlerini hesaplamak için ayarlardan bir konum seçin",
   "azan.stop": "Durdur",
-  "azan.time": "Vakit {time}"
+  "azan.time": "Vakit {time}",
+  "azan.label": "Ezan vakti",
+  "dua.title": "Ezan duası",
+  "dua.text": "Allah'ım! Bu eksiksiz davetin ve kılınacak namazın Rabbi! Muhammed'e vesîleyi ve fazîleti ver ve onu vaat ettiğin övülmüş makama ulaştır."
 }
