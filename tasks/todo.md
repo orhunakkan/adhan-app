@@ -198,7 +198,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/ui/settings/shell.ts`, `src/ui/settings/controls.ts`, `src/styles/components.css`, `tests/dom/settingsShell.test.ts`
   - Deps: 11, 20
 
-- [ ] **Task 26: Cities dataset** (S) — §5
+- [x] **Task 26: Cities dataset** (S) — §5
   - Acceptance: `scripts/build-cities.mjs` generates `public/data/cities.json` from GeoNames cities15000 (CC BY 4.0), < 500 KB, with name/country/lat/lng/tz; search helper (accent-insensitive)
   - Verify: `tests/core/cities.test.ts`: zod parse, size < 500 KB, no duplicate ids, every tz in `Intl.supportedValuesOf('timeZone')`, search finds "istanbul" for "İstanbul"
   - Files: `scripts/build-cities.mjs`, `public/data/cities.json`, `src/core/cities.ts`, `tests/core/cities.test.ts`
