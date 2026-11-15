@@ -8,6 +8,8 @@ export default mergeConfig(
   defineConfig({
     test: {
       restoreMocks: true,
+      // Day-long FakeClock simulations run ~100k ticks; CI runners with coverage are slower.
+      testTimeout: 30_000,
       unstubEnvs: true,
       unstubGlobals: true,
       coverage: {
