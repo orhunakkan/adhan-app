@@ -52,6 +52,10 @@ describe('service worker precache', () => {
     expect(sw).toContain('SKIP_WAITING');
   });
 
+  it('claims the page on first activation, so the first launch already gets 206 audio', () => {
+    expect(sw).toMatch(/clients\.claim\(\)/);
+  });
+
   it('is a classic script (Safari 15 has no module service workers)', () => {
     expect(sw).not.toMatch(/^\s*(import|export)\s/m);
   });
