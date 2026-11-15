@@ -282,7 +282,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/ui/debugPanel.ts`, `src/app/createApp.ts`, `tests/dom/debugPanel.test.ts`
   - Deps: 12, 28, 33
 
-- [ ] **Task 35: Type tests completion + benchmarks** (S) — §13.8, §13.9
+- [x] **Task 35: Type tests completion + benchmarks** (S) — §13.8, §13.9
   - Acceptance: all §13.8 type tests present; benches for a year of times (< 50 ms), `getDuePrayer` (< 0.05 ms) and clock render per tick; baseline recorded for README
   - Verify: `npm run typecheck`, `npm run bench`
   - Files: `tests/types/*.test-d.ts`, `tests/bench/*.bench.ts`
