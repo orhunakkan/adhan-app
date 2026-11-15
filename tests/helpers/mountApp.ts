@@ -26,6 +26,7 @@ export interface MountOptions {
   /** Reuse an existing clock (e.g. to simulate a reload at the same moment). */
   clock?: FakeClock;
   geolocation?: GeolocationPort;
+  loadPanels?: () => Promise<unknown>;
 }
 
 export interface Mounted {
@@ -77,6 +78,7 @@ export function mountApp(opts: MountOptions = {}): Mounted {
     chime,
     geolocation: opts.geolocation ?? { getPosition: () => Promise.reject(new Error('denied')) },
     loadCities: () => Promise.resolve(testCities()),
+    loadPanels: () => opts.loadPanels?.() ?? Promise.resolve(testPanels()),
     objectUrls: { create: (b) => URL.createObjectURL(b), revoke: (u) => URL.revokeObjectURL(u) },
     createPlayer: () => {
       const p = new FakeMediaPlayer();
@@ -113,4 +115,11 @@ export function testCities(): City[] {
     ),
   );
   return cities;
+}
+
+/** The real bundled placeholder panels. */
+export function testPanels(): unknown {
+  return JSON.parse(
+    readFileSync(join(import.meta.dirname, '..', '..', 'public', 'panels', 'panels.json'), 'utf8'),
+  );
 }
