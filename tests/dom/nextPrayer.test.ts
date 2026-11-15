@@ -55,6 +55,19 @@ describe('next-prayer card and timeline', () => {
     expect(q('.next-card__countdown').textContent).not.toBe(before);
   });
 
+  it('counts down to the exact second and drops the hours under one hour', () => {
+    m = mountApp({ start: new Date(t.asr.getTime() - 3_723_000) }); // 1 h 2 min 3 s before Asr
+    expect(q('.next-card__countdown').textContent).toBe('1:02:03');
+    m.clock.advanceBy(1000);
+    expect(q('.next-card__countdown').textContent).toBe('1:02:02');
+    m.clock.advanceTo(new Date(t.asr.getTime() - 3_600_000));
+    expect(q('.next-card__countdown').textContent).toBe('1:00:00');
+    m.clock.advanceBy(1000);
+    expect(q('.next-card__countdown').textContent).toBe('59:59');
+    m.clock.advanceTo(new Date(t.asr.getTime() - 1000));
+    expect(q('.next-card__countdown').textContent).toBe('00:01');
+  });
+
   it('marks past, current, next and upcoming chips with icons and names', () => {
     m = mountApp({ start: new Date(t.asr.getTime() + 60_000) });
     expect(stateOf('fajr')).toBe('past');

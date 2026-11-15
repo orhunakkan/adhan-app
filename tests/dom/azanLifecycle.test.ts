@@ -17,6 +17,29 @@ describe('azan moment lifecycle (review cycle 2)', () => {
   let m: Mounted | undefined;
   afterEach(() => m?.dispose());
 
+  it('a reload in the middle of an azan shows Start and never plays that azan again', async () => {
+    m = mountApp({ start: START });
+    await m.app.tapStart();
+    const { maghrib, isha } = times(m);
+    await m.clock.advanceToAsync(new Date(maghrib.getTime() + 1000));
+    await flush();
+    expect(m.app.state().azan?.prayer).toBe('maghrib');
+    const { store, blobs } = m;
+    m.dispose();
+    // iOS reloaded the page 40 s into the azan: same storage, the audio unlock is lost.
+    m = mountApp({ start: new Date(maghrib.getTime() + 41_000), store, blobs });
+    expect(document.querySelector('.overlay')).not.toBeNull();
+    await m.app.tapStart();
+    await m.clock.advanceByAsync(60_000); // still inside Maghrib's 120 s fire window
+    await flush();
+    expect(m.app.state().azan).toBeNull();
+    expect(m.player!.sources.filter((src) => src !== SILENCE_URL)).toEqual([]);
+    // The next prayer still plays.
+    await m.clock.advanceToAsync(new Date(isha.getTime() + 1000));
+    await flush();
+    expect(m.app.state().azan?.prayer).toBe('isha');
+  });
+
   it('C1: the safety cap survives an Enable-tap replay that is then interrupted and left alone', async () => {
     m = mountApp({ start: START });
     await m.app.tapStart();

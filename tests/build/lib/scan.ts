@@ -24,9 +24,34 @@ interface RegexLiteral extends Node {
 }
 
 interface CallLike extends Node {
-  callee: Node & { name?: string };
+  callee: Node & {
+    name?: string;
+    computed?: boolean;
+    object?: Node & { name?: string };
+    property?: Node & { name?: string };
+  };
   arguments: RegexLiteral[];
 }
+
+/**
+ * Built-ins newer than Safari 15.6 (iPadOS 15.8), as called in the bundle.
+ * Only calls are flagged, so a feature test such as `if (a.toSorted)` passes.
+ */
+const NEW_METHODS = new Set([
+  'toSorted',
+  'toReversed',
+  'toSpliced',
+  'isWellFormed',
+  'toWellFormed',
+]);
+const NEW_STATICS: Record<string, readonly string[]> = {
+  Object: ['groupBy'],
+  Map: ['groupBy'],
+  Promise: ['withResolvers', 'try'],
+  AbortSignal: ['timeout', 'any'],
+  Array: ['fromAsync'],
+};
+const NEW_GLOBALS = new Set(['requestIdleCallback', 'cancelIdleCallback', 'OffscreenCanvas']);
 
 /** Returns human-readable problems; an empty array means the file is safe for Safari 15. */
 export function findJsCompatIssues(code: string): string[] {
@@ -37,8 +62,24 @@ export function findJsCompatIssues(code: string): string[] {
     return [`does not parse as ES2022: ${(e as Error).message}`];
   }
   const issues: string[] = [];
+  const checkNewBuiltIn = (call: CallLike) => {
+    const { callee } = call;
+    if (callee.type === 'Identifier' && callee.name && NEW_GLOBALS.has(callee.name)) {
+      issues.push(`${callee.name} (not in Safari 15) at ${call.start}`);
+    }
+    if (callee.type !== 'MemberExpression' || callee.computed) return;
+    const prop = callee.property?.name;
+    if (!prop) return;
+    const owner = callee.object?.type === 'Identifier' ? callee.object.name : undefined;
+    if (owner && NEW_STATICS[owner]?.includes(prop)) {
+      issues.push(`${owner}.${prop}() (not in Safari 15) at ${call.start}`);
+    } else if (NEW_METHODS.has(prop)) {
+      issues.push(`.${prop}() (not in Safari 15) at ${call.start}`);
+    }
+  };
   const checkRegExpCall = (node: Node) => {
     const call = node as CallLike;
+    checkNewBuiltIn(call);
     const first = call.arguments[0];
     if (
       call.callee.name === 'RegExp' &&

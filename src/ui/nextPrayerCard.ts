@@ -5,13 +5,28 @@ import { INTL_LOCALE, prayerName, t } from '../i18n';
 import { h, setText } from './dom';
 import { createProgressRing } from './progressRing';
 
+const countdownFormats = new Map<string, { pad: Intl.NumberFormat; plain: Intl.NumberFormat }>();
+
+/** Formatters are cached per locale: the countdown renders every second. */
+function formatsFor(locale: string) {
+  let f = countdownFormats.get(locale);
+  if (!f) {
+    f = {
+      pad: new Intl.NumberFormat(locale, { minimumIntegerDigits: 2, useGrouping: false }),
+      plain: new Intl.NumberFormat(locale),
+    };
+    countdownFormats.set(locale, f);
+  }
+  return f;
+}
+
 export function formatCountdown(ms: number, locale: string): string {
   const total = Math.max(0, Math.floor(ms / 1000));
   const hh = Math.floor(total / 3600);
   const mm = Math.floor((total % 3600) / 60);
   const ss = total % 60;
-  const nf = new Intl.NumberFormat(locale, { minimumIntegerDigits: 2, useGrouping: false });
-  return `${hh > 0 ? `${new Intl.NumberFormat(locale).format(hh)}:` : ''}${nf.format(mm)}:${nf.format(ss)}`;
+  const { pad, plain } = formatsFor(locale);
+  return `${hh > 0 ? `${plain.format(hh)}:` : ''}${pad.format(mm)}:${pad.format(ss)}`;
 }
 
 export function mountNextPrayerCard(host: HTMLElement): { render(s: AppState): void } {

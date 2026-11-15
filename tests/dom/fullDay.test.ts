@@ -11,6 +11,14 @@ const flush = async () => {
 const q = (sel: string) => document.querySelector<HTMLElement>(sel)!;
 const calc = { ...defaultSettings.calc, method: 'NorthAmerica' as const };
 const t = computeDay('2026-05-10', SCHAUMBURG, calc);
+const tomorrow = computeDay('2026-05-11', SCHAUMBURG, calc);
+/** h:mm:ss, or mm:ss under an hour, written out independently of formatCountdown. */
+const hms = (ms: number) => {
+  const s = Math.floor(ms / 1000);
+  const two = (n: number) => String(n).padStart(2, '0');
+  const h = Math.floor(s / 3600);
+  return `${h ? `${h}:` : ''}${two(Math.floor((s % 3600) / 60))}:${two(s % 60)}`;
+};
 const NEXT = {
   fajr: 'Güneş',
   sunrise: 'Öğle',
@@ -36,6 +44,10 @@ describe('full-day simulation in Schaumburg (00:00 → 23:59)', () => {
       expect(document.documentElement.dataset.period, p).toBe(p);
       expect(q(`.chip[data-prayer="${p}"]`).classList.contains('chip--current'), p).toBe(true);
       expect(q('.next-card__name').textContent, p).toBe(NEXT[p]);
+      const next = p === 'isha' ? tomorrow.fajr : t[PRAYERS[PRAYERS.indexOf(p) + 1]!];
+      expect(q('.next-card__countdown').textContent, p).toBe(
+        hms(next.getTime() - t[p].getTime() - 1000),
+      );
       expect(visibleLayer().style.backgroundImage).toBe(gradientFor('midnight', p));
       expect(document.querySelectorAll('.sky__layer--visible')).toHaveLength(1);
       if (p === 'sunrise') {

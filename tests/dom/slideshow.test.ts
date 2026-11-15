@@ -3,6 +3,7 @@ import { defaultSettings } from '../../src/config/defaults';
 import { computeDay } from '../../src/core/prayerTimes';
 import { SCHAUMBURG } from '../helpers/days';
 import { MemoryBlobStore } from '../helpers/memoryBlobStore';
+import { setMediaQuery } from '../helpers/matchMedia';
 import { mountApp, type Mounted } from '../helpers/mountApp';
 import { objectUrls } from '../helpers/objectUrls';
 
@@ -109,6 +110,22 @@ describe('Ken Burns', () => {
     });
     for (let i = 0; i < 9 && !q('.slide--in.photo'); i++) await m.clock.advanceByAsync(INTERVAL);
     expect(q('.slide--in.photo')!.classList.contains('photo--kenburns')).toBe(true);
+    m.dispose();
+  });
+  it('photo slides still show under reduced motion, without Ken Burns', async () => {
+    setMediaQuery('(prefers-reduced-motion: reduce)', true);
+    const { blobs, keys } = await withPhotos(2);
+    const m = mountApp({
+      start: QUIET,
+      blobs,
+      settings: {
+        photos: keys,
+        display: { ...defaultSettings.display, screensaverMode: 'photos' },
+      },
+    });
+    for (let i = 0; i < 9 && !q('.slide--in.photo'); i++) await m.clock.advanceByAsync(INTERVAL);
+    expect(q('.slide--in.photo')).not.toBeNull();
+    expect(q('.photo--kenburns')).toBeNull();
     m.dispose();
   });
 });
