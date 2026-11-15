@@ -308,11 +308,12 @@ The standard verification for every task (on top of its own checks) is: the new 
 
 ## Phase 8: Ship
 
-- [ ] **Task 38: Review, simplify, ship decision** (M) — code-review-and-quality, code-simplification, shipping-and-launch
+- [x] **Task 38: Review, simplify, ship decision** (M) — code-review-and-quality, code-simplification, shipping-and-launch
   - Acceptance: five-axis review; simplification pass with behavior preserved; `/ship` fan-out (code-reviewer, security-auditor, test-engineer — no E2E proposals) merged into a GO/NO-GO with a rollback plan (Cloudflare Pages "rollback to previous deployment")
   - Verify: Critical/Required findings fixed with tests; `npm run ci` green
   - Files: as findings require
   - Deps: 37
+  - Result: first review NO-GO; all blockers fixed with tests; **GO**, see [`docs/ship-decision.md`](../docs/ship-decision.md)
 
 - [ ] **Task 39: Deploy + manual iPad checklist** (S, owner-gated)
   - Acceptance: the owner confirms the deploy method; production deploy from `main`; owner runs the README manual checklist and the 7-day acceptance run
