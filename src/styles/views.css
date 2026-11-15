@@ -34,8 +34,10 @@
     }
   }
 
+  /* Top padding keeps the clock clear of the Settings gear (48 px at 16 px + safe area, ±8 px burn-in shift). */
   .zone--clock {
     grid-area: clock;
+    padding-block-start: var(--space-8);
   }
 
   .zone--next {
@@ -419,167 +421,6 @@
     50% {
       opacity: 0.9;
       transform: scale(1.05);
-    }
-  }
-}
-
-@layer views {
-  /* Screensaver: slides full-bleed, crossfade with a slight blur-in (brief §8.6). */
-  .screensaver {
-    position: fixed;
-    inset: 0;
-    z-index: 20;
-    visibility: hidden;
-    background: var(--bg-1);
-    opacity: 0;
-    transition:
-      opacity var(--dur-slow) var(--ease-out),
-      visibility 0s linear var(--dur-slow);
-  }
-
-  .screensaver--active {
-    visibility: visible;
-    opacity: 1;
-    transition: opacity var(--dur-slow) var(--ease-out);
-  }
-
-  .slide {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    transform: scale(1.02);
-    transition:
-      opacity var(--dur-slow) var(--ease-out),
-      transform var(--dur-slow) var(--ease-out);
-  }
-
-  .slide--in {
-    opacity: 1;
-    transform: none;
-  }
-
-  .panel {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-5);
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-8);
-    margin: 0;
-    text-align: center;
-  }
-
-  .panel__text {
-    max-inline-size: 30ch;
-    margin: 0;
-    font-size: clamp(2rem, 4.2vw, 3.6rem);
-    line-height: 1.6;
-  }
-
-  .panel__text--ar {
-    font-family: var(--font-verse);
-    line-height: 1.9;
-  }
-
-  .panel__translation {
-    max-inline-size: 60ch;
-    font-size: clamp(1.25rem, 2.2vw, 1.9rem);
-    line-height: 1.6;
-    color: var(--text-2);
-  }
-
-  .panel__source {
-    font-size: var(--type-secondary);
-    font-variant: small-caps;
-    color: var(--text-2);
-    letter-spacing: 0.06em;
-  }
-
-  .pill {
-    position: absolute;
-    display: flex;
-    gap: var(--space-4);
-    align-items: baseline;
-    padding: var(--space-3) var(--space-5);
-    border-radius: var(--radius-pill);
-  }
-
-  .pill__time {
-    font-size: var(--type-countdown);
-    font-weight: 300;
-  }
-
-  .pill__next {
-    font-size: var(--type-secondary);
-    color: var(--text-2);
-  }
-
-  .pill--top-start {
-    inset-block-start: var(--space-6);
-    inset-inline-start: var(--space-6);
-  }
-
-  .pill--top-end {
-    inset-block-start: var(--space-6);
-    inset-inline-end: var(--space-6);
-  }
-
-  .pill--bottom-end {
-    inset-block-end: var(--space-6);
-    inset-inline-end: var(--space-6);
-  }
-
-  .pill--bottom-start {
-    inset-block-end: var(--space-6);
-    inset-inline-start: var(--space-6);
-  }
-}
-
-@layer views {
-  /* Photo slides: full-bleed with a slow Ken Burns zoom and a bottom scrim (brief §8.6). */
-  .photo {
-    overflow: hidden;
-  }
-
-  .photo__img {
-    inline-size: 100%;
-    block-size: 100%;
-    object-fit: cover;
-    transform: scale(1);
-  }
-
-  .slide--in.photo--kenburns .photo__img {
-    animation: ken-burns 60s linear forwards;
-  }
-
-  .photo__scrim {
-    position: absolute;
-    inset: 40% 0 0;
-    background: linear-gradient(to bottom, transparent, rgb(0 0 0 / 65%));
-  }
-
-  .photos__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
-    gap: var(--space-3);
-    padding: var(--space-3);
-  }
-
-  .photos__item {
-    display: grid;
-    gap: var(--space-2);
-  }
-
-  .photos__thumb {
-    inline-size: 100%;
-    aspect-ratio: 4 / 3;
-    object-fit: cover;
-    border-radius: var(--radius-sm);
-  }
-
-  @keyframes ken-burns {
-    to {
-      transform: scale(1.06);
     }
   }
 }

@@ -3,11 +3,8 @@
 import type { Settings } from '../config/schema';
 
 export const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
-/** Before resizing: very large originals can exhaust a 2 GB iPad while decoding. */
-export const MAX_PHOTO_UPLOAD_BYTES = 40 * 1024 * 1024;
-export const MAX_PHOTOS = 200;
 
-export type UploadProblem = 'tooLarge' | 'wrongType' | 'tooMany' | 'storageFull';
+export type UploadProblem = 'tooLarge' | 'wrongType' | 'storageFull';
 
 export class UploadError extends Error {
   constructor(readonly problem: UploadProblem) {
@@ -16,15 +13,24 @@ export class UploadError extends Error {
   }
 }
 
-/** iOS sometimes reports an empty MIME type; only a wrong, non-empty one is rejected. */
-export function checkUpload(file: Blob, kind: 'audio' | 'image'): void {
-  if (file.type && !file.type.startsWith(`${kind}/`)) throw new UploadError('wrongType');
-  const max = kind === 'audio' ? MAX_AUDIO_BYTES : MAX_PHOTO_UPLOAD_BYTES;
-  if (file.size > max) throw new UploadError('tooLarge');
+/** Checks an uploaded azan file. iOS sometimes reports an empty MIME type; only a wrong, non-empty one is rejected. */
+export function checkUpload(file: Blob): void {
+  if (file.type && !file.type.startsWith('audio/')) throw new UploadError('wrongType');
+  if (file.size > MAX_AUDIO_BYTES) throw new UploadError('tooLarge');
 }
 
 /** Audio blob keys ('user:<key>') still used by some prayer or the dua. */
 export function referencedAudioKeys(settings: Settings): Set<string> {
   const sources = [...Object.values(settings.azan.audio), settings.azan.dua.source];
   return new Set(sources.filter((s) => s.startsWith('user:')).map((s) => s.slice('user:'.length)));
+}
+
+/**
+ * Stored blob keys nothing uses: audio no prayer (or the dua) refers to any
+ * more, and anything else, such as photos and thumbnails left by the removed
+ * screensaver (ADR-0007). A referenced audio key is never in the result.
+ */
+export function unreferencedBlobKeys(keys: readonly string[], settings: Settings): string[] {
+  const used = referencedAudioKeys(settings);
+  return keys.filter((key) => !used.has(key));
 }

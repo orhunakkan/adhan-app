@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { LONG_PRESS_MS } from '../../src/ui/settings/shell';
+import { defaultSettings } from '../../src/config/defaults';
 import { segmented, select, stepper, toggle } from '../../src/ui/settings/controls';
 import { setMediaQuery } from '../helpers/matchMedia';
 import { mountApp, type Mounted } from '../helpers/mountApp';
@@ -7,49 +7,33 @@ import { mountApp, type Mounted } from '../helpers/mountApp';
 const q = (sel: string) => document.querySelector<HTMLElement>(sel);
 const START = new Date('2026-05-10T17:00:00Z');
 
-function longPress(m: Mounted, ms = LONG_PRESS_MS) {
-  const hot = q('.settings-hotspot')!;
-  hot.dispatchEvent(new Event('pointerdown'));
-  m.clock.advanceBy(ms);
-  hot.dispatchEvent(new Event('pointerup'));
+function openSettings() {
+  q('.settings-button')!.click();
 }
 
 describe('settings shell', () => {
   let m: Mounted | undefined;
   afterEach(() => m?.dispose());
 
-  it('opens only after a 3 s long-press on the corner', () => {
+  it('one tap on the gear button opens it', () => {
     m = mountApp({ start: START });
-    expect(q('.settings-hotspot')!.getAttribute('aria-label')).toBe('Ayarlar');
-    longPress(m, LONG_PRESS_MS - 1);
     expect(q('.settings')).toBeNull();
-    longPress(m);
+    openSettings();
     expect(q('.settings')!.getAttribute('role')).toBe('dialog');
     expect(q('.settings')!.getAttribute('aria-modal')).toBe('true');
     expect(m.root.querySelector<HTMLElement>('.app-main')!.inert).toBe(true);
   });
 
-  it('a press released early (or cancelled) does not open', () => {
-    m = mountApp({ start: START });
-    const hot = q('.settings-hotspot')!;
-    hot.dispatchEvent(new Event('pointerdown'));
-    m.clock.advanceBy(1000);
-    hot.dispatchEvent(new Event('pointerleave'));
-    m.clock.advanceBy(5000);
-    expect(q('.settings')).toBeNull();
-  });
-
   it('shows the sections and the active pane; Close and Escape close it', async () => {
     m = mountApp({ start: START });
     await m.app.tapStart(); // otherwise the start overlay keeps the main screen inert
-    longPress(m);
+    openSettings();
     const sections = [...document.querySelectorAll<HTMLElement>('.settings__section')];
     expect(sections.map((s) => s.dataset.section)).toEqual([
       'location',
       'calculation',
       'azan',
       'display',
-      'photos',
       'about',
     ]);
     expect(sections[0]!.getAttribute('aria-current')).toBe('page');
@@ -58,14 +42,14 @@ describe('settings shell', () => {
     q('.settings')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     expect(q('.settings')).toBeNull();
     expect(m.root.querySelector<HTMLElement>('.app-main')!.inert).toBe(false);
-    longPress(m);
+    openSettings();
     [...document.querySelectorAll<HTMLButtonElement>('.settings__header button')].at(-1)!.click();
     expect(q('.settings-layer')!.hidden).toBe(true);
   });
 
   it('PIN gate: a wrong PIN is rejected, the right one opens the sheet', () => {
     m = mountApp({ start: START, settings: { pin: '4821' } });
-    longPress(m);
+    openSettings();
     expect(q('.settings')).toBeNull();
     const key = (d: string) =>
       [...document.querySelectorAll<HTMLButtonElement>('.pin__key')]
@@ -82,7 +66,7 @@ describe('settings shell', () => {
 
   it('PIN pad can be closed', () => {
     m = mountApp({ start: START, settings: { pin: '4821' } });
-    longPress(m);
+    openSettings();
     q('.pin .pill-button')!.click();
     expect(q('.pin')).toBeNull();
   });
@@ -90,7 +74,7 @@ describe('settings shell', () => {
   it('drills down in portrait and goes back', () => {
     setMediaQuery('(orientation: portrait)', true);
     m = mountApp({ start: START });
-    longPress(m);
+    openSettings();
     expect(q('.settings')!.classList.contains('settings--portrait')).toBe(true);
     expect(q('.settings__back')!.hidden).toBe(true);
     q('.settings__section')!.click();
@@ -101,7 +85,7 @@ describe('settings shell', () => {
 
   it('re-renders on rotation while open', () => {
     m = mountApp({ start: START });
-    longPress(m);
+    openSettings();
     setMediaQuery('(orientation: portrait)', true);
     expect(q('.settings')!.classList.contains('settings--portrait')).toBe(true);
   });
@@ -170,5 +154,46 @@ describe('settings controls', () => {
     s.value = 'a';
     s.dispatchEvent(new Event('change'));
     expect(onChange).toHaveBeenCalledWith('a');
+  });
+});
+
+describe('settings button', () => {
+  let m: Mounted | undefined;
+  afterEach(() => m?.dispose());
+  const lang = (language: 'tr' | 'en' | 'ar') => ({
+    display: { ...defaultSettings.display, language },
+  });
+
+  it.each([
+    ['tr', 'Ayarlar'],
+    ['ar', 'الإعدادات'],
+  ] as const)('is a gear button named in %s; one click opens Settings', (language, name) => {
+    m = mountApp({ start: START, settings: lang(language) });
+    const button = q('.settings-button')!;
+    expect(button.tagName).toBe('BUTTON');
+    expect(button.getAttribute('type')).toBe('button');
+    expect(button.classList.contains('touch-target')).toBe(true);
+    expect(button.getAttribute('aria-label')).toBe(name);
+    expect(button.querySelector('svg.icon')!.getAttribute('aria-hidden')).toBe('true');
+    expect(document.querySelectorAll('.settings-hotspot')).toHaveLength(0);
+    button.click();
+    expect(q('.settings')!.getAttribute('aria-labelledby')).toBe('settings-title');
+    expect(q('.settings__title')!.textContent).toBe(name);
+  });
+
+  it('follows a language change', () => {
+    m = mountApp({ start: START });
+    expect(q('.settings-button')!.getAttribute('aria-label')).toBe('Ayarlar');
+    m.app.updateSettings(lang('ar'));
+    expect(q('.settings-button')!.getAttribute('aria-label')).toBe('الإعدادات');
+    m.app.updateSettings(lang('en'));
+    expect(q('.settings-button')!.getAttribute('aria-label')).toBe('Settings');
+  });
+
+  it('with a PIN set, a click shows the PIN pad instead of the sheet', () => {
+    m = mountApp({ start: START, settings: { pin: '4821' } });
+    openSettings();
+    expect(q('.pin')!.getAttribute('role')).toBe('dialog');
+    expect(q('.settings')).toBeNull();
   });
 });

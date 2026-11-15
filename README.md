@@ -1,6 +1,6 @@
 # Ezan Saati — azan clock for an always-on iPad
 
-An offline-first web app (PWA) that turns a dedicated iPad into an azan clock. It calculates prayer times on the device, plays the azan at each prayer time, shows a large clock with today's times, and rotates reflection panels and your photos as a screensaver. After the first load it works without Wi-Fi.
+An offline-first web app (PWA) that turns a dedicated iPad into an azan clock. It calculates prayer times on the device, plays the azan at each prayer time, and shows a large clock with today's times and the next prayer on a single main screen (no screensaver). After the first load it works without Wi-Fi.
 
 Built for an **iPad Air 2 / iPad mini 4 on iPadOS 15.8** (Safari 15.8, 2 GB RAM) that stays plugged in, in Guided Access, with the app always open. It is a static site (Cloudflare Pages free plan); there is no server.
 
@@ -73,7 +73,7 @@ Use **one** method per project; don't mix them. A direct-upload project can't be
 3. **Settings → General → Software Update → Automatic Updates → Off.** An overnight update reboots the iPad and loses the audio unlock. Install updates by hand, then tap Start again.
 4. **Settings → Accessibility → Guided Access → On** with a passcode, and set **Display Auto-Lock → Never** there too (Guided Access has its own auto-lock). Triple-click to start Guided Access in the app.
 5. Set the volume with the **hardware buttons** (iOS ignores app volume), tap **Start**, then use **Test** for each prayer in Settings → Azan.
-6. In the app, open Settings (press and hold the **top-right corner (top-left in Arabic) for 3 seconds**), set your location (Location → *Konumumu kullan*, a city, or manual), the calculation method and any minute offsets to match your mosque. Optionally set a PIN. Your real location is entered on the iPad only, never committed.
+6. In the app, open Settings (tap the faint **gear button in the top-left corner** — top-right in Arabic; it asks for the PIN if one is set), set your location (Location → *Konumumu kullan*, a city, or manual), the calculation method and any minute offsets to match your mosque. Optionally set a PIN. Your real location is entered on the iPad only, never committed.
    The PIN only keeps curious hands out of Settings. It is stored on the iPad without encryption, and five wrong tries lock the pad for 30 seconds. **Guided Access is the real lock**: it keeps people from leaving the app, changing the volume or reaching iPadOS settings.
 7. **Battery:** this iPad has no charge limit. An old battery kept at 100 % can swell: consider a smart plug that cycles charging, and check now and then for a lifting screen.
 8. The Air 2 / mini 4 have LCD screens, so burn-in is a small risk; pixel shift and night dim stay on anyway.
@@ -85,13 +85,12 @@ If the azan ever cannot play (after a reboot, or iOS revoked audio), the screen 
 
 - [ ] The Start tap unlocks audio; **Test** plays for every prayer.
 - [ ] 24-hour soak: all 5 azans fire on time; the reload count in *Tanılama* does not increase.
-- [ ] Wi-Fi off for a full day: azans still fire; fonts and panels render.
+- [ ] Wi-Fi off for a full day: azans still fire; fonts and the pattern render.
 - [ ] The first launch from the Home Screen: one tap on **Start** unlocks audio, with no "Tap to enable azan" afterwards, and **Test** plays. Cloudflare Pages ignores Range requests, so this relies on the service worker taking control during the first launch.
 - [ ] Reboot the iPad: the Start overlay appears; one tap and the next azan works.
 - [ ] Trigger Siri during an azan: the Resume button appears and works.
 - [ ] Airplane mode, then wait for the 3-minute health check before a prayer: no warning appears, and the azan plays from the offline cache (bundled files and uploads).
-- [ ] VoiceOver on (Settings → Accessibility): the Start button, the Settings corner, every settings control and the PIN keys are announced by name, and the azan screen announces the prayer.
-- [ ] Photo slideshow for 24 hours: memory stable (Web Inspector) or reload count unchanged.
+- [ ] VoiceOver on (Settings → Accessibility): the Start button, the Settings gear button, every settings control and the PIN keys are announced by name, and the azan screen announces the prayer.
 - [ ] The screen stays on for 24 hours inside Guided Access (both Auto-Lock settings at Never).
 - [ ] Deploy an update: the toast appears, *Apply* is refused within 5 minutes of a prayer, and works otherwise.
 - [ ] Animations look smooth; turn **Glass effect** on, check it, and leave it off if it stutters.
@@ -104,7 +103,7 @@ If the azan ever cannot play (after a reboot, or iOS revoked audio), the screen 
 - **Prayer times:** `adhan-js` per calendar date at your location, every method, both madhabs, three high-latitude rules, ±30 min offsets; all formatting in your location's time zone.
 - **Scheduler:** a 1-second tick and a pure fire rule — an azan plays when 0–120 s past its time, at most once per prayer and date ([ADR-0002](docs/adr/0002-scheduler-tick-and-fired-keys.md)).
 - **Audio:** one audio element unlocked by your tap and reused for every azan; health check 3 minutes before each prayer ([ADR-0003](docs/adr/0003-single-audio-element.md), [ADR-0004](docs/adr/0004-no-wake-lock-no-reloads.md)).
-- **Screensaver:** two intervals of clock, then a panel or photo; the full clock stays around prayer times ([ADR-0006](docs/adr/0006-screensaver-rhythm.md)). The shipped panels are **placeholders** (Qur'an with Pickthall's 1930 public-domain translation) — review and replace them in `public/panels/panels.json`.
+- **Main screen only:** no screensaver, reflection panels or photo slideshow ([ADR-0007](docs/adr/0007-main-screen-only.md)). Burn-in care is a ±8 px pixel shift every 10 minutes plus night dim. Photos stored by an older version are deleted from the iPad on the next start.
 
 ## License and notices
 

@@ -2,6 +2,8 @@
 
 Status: approved (2026-11-14)
 
+Owner decision 2026-11-15: no screensaver; main screen only. ([ADR-0007](docs/adr/0007-main-screen-only.md))
+
 Detailed requirements: `adhan-app-build-plan.md` (the "brief"). This spec is the agreed contract. It lists every requirement area and points to the brief section that holds the detail, instead of copying it. If the two disagree, this spec wins and the brief gets corrected.
 
 ## Objective
@@ -11,7 +13,7 @@ Turn a dedicated, always-plugged-in iPad (iPadOS 15.8, Safari 15.8, A8/A8X, 2 GB
 1. Calculates prayer times on-device for one configured location (adhan-js), with method, madhab, high-latitude rule and per-prayer offsets (brief §5).
 2. Plays the azan at each enabled prayer within 2 s of its time, never twice, never in a late burst after a reload, wake, DST change or midnight (brief §6, §7).
 3. Shows a modern, calm, dark-first clock screen readable from about 4 m: clock, Gregorian and Hijri dates, next-prayer card with progress ring and countdown, six-prayer timeline, and a period-driven sky gradient (brief §8).
-4. Rotates reflection panels and personal photos as a screensaver, with burn-in shift and night dim (brief §9).
+4. Shows only that main screen (no screensaver, panels or photos), protected by a ±8 px burn-in shift and night dim (brief §9).
 5. Works fully offline after the first load, and survives 24 h+ without Safari reloading the page (brief §11, §18).
 
 **Users:** the household that owns the iPad (sees the screen, hears the azan, occasionally taps "Start" after a reboot), and the maintainer (sets it up, uploads azan audio, changes settings behind a PIN).
@@ -53,16 +55,16 @@ scripts/normalize-audio.sh <in> <out.m4a>   # ffmpeg loudnorm + trim; also gener
 As in brief §3, plus the lifecycle artifacts:
 
 ```
-src/config      → defaults, zod schemas (settings, panels, cities)
+src/config      → defaults, zod schemas (settings, cities)
 src/core        → pure logic + ports (prayerTimes, scheduler, audio, wakeLock, storage, hijri,
                   period, nightDim, burnIn, updateGate, logger, ports)
 src/design      → tokens.ts (source of truth → CSS vars), contrast.ts
-src/ui          → mount/render view modules (overlays, clock, ring, azan, panels, slideshow,
-                  settings, toast, debug panel, styleguide)
+src/ui          → mount/render view modules (overlays, clock, ring, azan, settings, toast,
+                  debug panel, styleguide)
 src/i18n        → tr.json, en.json, ar.json
 src/styles      → base.css, components.css, views.css (@layer, nesting compiled out)
 src/main.ts     → the only place real browser adapters are created
-public/         → audio/silence.m4a, fonts/ (+ OFL licenses), panels/, patterns/, icons/, _headers
+public/         → audio/silence.m4a, fonts/ (+ OFL licenses), patterns/, icons/, _headers
 scripts/        → normalize-audio.sh, data build scripts (cities, icons)
 tests/          → core/, dom/, build/, bench/, types/, fixtures/, helpers/
 docs/adr/       → architecture decision records
@@ -110,7 +112,7 @@ export function getDuePrayer(input: DueInput): { key: string; prayer: PrayerName
 | Level | Project / env | Covers |
 |---|---|---|
 | Unit (pure core) | `core` / node | prayer times vs reference fixtures (±2 min), TZ/DST under `TZ=UTC` and `TZ=Asia/Tokyo`, `getDuePrayer` tables, 48 h scheduler simulation, period, night dim, burn-in, update gate, hijri fallback, storage + migrations, logger, data validation, i18n parity, design tokens and WCAG contrast |
-| Integration ("E2E substitute") | `dom` / happy-dom | `mountApp()` harness with FakeClock, FakeMediaPlayer, FakeWakeLock, MemoryStore, fake-indexeddb, seeded RNG: full-day simulation, audio unlock/health check/resume, overlays, settings, RTL, panels, slideshow leak guard, reduced motion, night dim, a11y smoke checks, file snapshots |
+| Integration ("E2E substitute") | `dom` / happy-dom | `mountApp()` harness with FakeClock, FakeMediaPlayer, FakeWakeLock, MemoryStore, fake-indexeddb, seeded RNG: full-day simulation, audio unlock/health check/resume, overlays, settings, RTL, startup cleanup of unreferenced files, reduced motion, night dim, a11y smoke checks, file snapshots |
 | Build verification | `build` / node vs `dist/` | manifest, SW precache list, meta tags, `_headers`, JS/fonts/audio/file-count budgets, Safari 15 syntax/CSS compat via acorn + Lightning CSS, repo hygiene (no audio, no `.env`, licenses present) |
 | Types | `--typecheck` | settings type = `z.infer`, fakes satisfy ports, token maps complete |
 | Bench | `vitest bench` (local) | year of times < 50 ms, `getDuePrayer` < 0.05 ms, clock render per tick |
@@ -121,7 +123,7 @@ Coverage thresholds (CI-failing): `src/core/**` + `src/design/**` ≥ 95% (lines
 ## Boundaries
 
 - **Always:** run `npm run ci` (or the relevant subset at task end; the full run at checkpoints) before committing; write the test first; keep every side effect behind a port; check new dependency output against the Safari 15 list; keep one commit per task, staged by explicit path; update SPEC/plan when a decision changes.
-- **Ask first:** adding a runtime dependency not in Tech Stack; changing a coverage threshold or budget; creating or pushing to the GitHub repo, changing branch protection; connecting or deploying to Cloudflare Pages; anything touching the user's accounts; replacing the placeholder panel content source.
+- **Ask first:** adding a runtime dependency not in Tech Stack; changing a coverage threshold or budget; creating or pushing to the GitHub repo, changing branch protection; connecting or deploying to Cloudflare Pages; anything touching the user's accounts.
 - **Never:** Playwright / Cypress / WebdriverIO / Puppeteer / Vitest Browser Mode / Chrome DevTools MCP / Lighthouse automation; commit audio other than `silence.m4a`; commit real coordinates, a PIN, photos, `.env*` or secrets; scheduled page reloads or NoSleep hacks; long `setTimeout` scheduling of azans; weaken `CONSTRAINTS.md` to get green.
 
 ## Success Criteria
@@ -133,13 +135,12 @@ Verified automatically (by the agent, in CI):
 - [x] Scheduler simulations prove: exactly 10 azans in 48 h in correct order; no duplicate or burst after a simulated reload, DST transition or midnight rollover; T−1 s / T / T+119 s / T+121 s boundaries hold.
 - [x] The audio factory is called exactly once per app lifetime, and every azan reuses that instance. A failed health check shows the danger "Tap to enable azan" overlay.
 - [x] Every theme × period gradient stop (and midpoint): text-1 ≥ 4.5:1, text-2 ≥ 3:1, accent on surface ≥ 3:1.
-- [x] Slideshow over 20 photos and 2 simulated hours: ≤ 2 `<img>` in the DOM at any time, every object URL revoked.
 - [x] `dist/`: JS < 150 KB gzipped, fonts ≤ 400 KB, audio ≤ 30 MB, no file > 25 MiB, < 20,000 files, no `@container` / `color-mix(` / nested CSS rules / static blocks / lookbehind.
 - [x] Repo contains no Playwright/E2E dependency, no audio except `silence.m4a`, no `.env*`; `LICENSE`, `THIRD_PARTY_NOTICES.md` and font licenses present.
 
 Verified manually by the owner on the iPad (agent cannot do these):
 
-- [ ] Brief §18: every enabled azan plays within 2 s for 7 days, Wi-Fi on or off; one tap restores audio after reboot; 24 h slideshow without a page reload; looks polished in both orientations, all three themes and Arabic RTL; smooth on the A8 iPad; times match the local mosque within ±2 min.
+- [ ] Brief §18: every enabled azan plays within 2 s for 7 days, Wi-Fi on or off; one tap restores audio after reboot; 24 h without a page reload; looks polished in both orientations, all three themes and Arabic RTL; smooth on the A8 iPad; times match the local mosque within ±2 min.
 
 ## Out of Scope (Deferred)
 
@@ -157,12 +158,12 @@ Verified manually by the owner on the iPad (agent cannot do these):
 4. **Cities dataset:** included. Generated by a script from GeoNames `cities15000` (CC BY 4.0), filtered by population to stay under 500 KB, with attribution.
 5. **Prayer-time reference fixtures:** Diyanet's published table for Istanbul and the Aladhan API for Oslo, committed as JSON with their source recorded. Schaumburg is checked against an in-repo NOAA solar-position oracle instead of Aladhan (decided 2026-11-14: Aladhan's winter Asr there is ~1.7 min early vs NOAA, while adhan-js is within 90 s).
 6. **PWA icons and the startup image** are generated by a script (simple geometric mark, no branding), committed as PNGs.
-7. **Placeholder panels:** English from Pickthall's Qur'an translation (public domain) plus the Arabic text, with sources, clearly marked as placeholders. See Open Question 3 about Turkish.
+7. **Placeholder panels:** superseded 2026-11-15, no panels ship (ADR-0007).
 8. **Real-device steps are yours:** Cloudflare Pages connection (needs your Cloudflare login), adding to Home Screen, and the manual iPad checklist. I prepare everything, and README documents each step.
 
 ## Resolved Questions (2026-11-14)
 
 1. **GitHub:** approved. Create a public `adhan-app` repo on the owner's account once the scaffold is green, push `main`, enable branch protection (require CI), secret scanning and push protection.
 2. **Build brief:** commit it to the repo as-is.
-3. **Turkish panel text:** no answer given, so the spec default applies: EN (Pickthall) + AR placeholders. Turkish UI strings are fully translated, and the owner adds Turkish panels later.
+3. **Turkish panel text:** moot since 2026-11-15, no panels ship (ADR-0007). Turkish UI strings are fully translated.
 4. **Cloudflare deploy method:** still open. It only blocks the final deploy task. Default: Git integration through the Cloudflare dashboard (the brief's preferred path), connected by the owner.

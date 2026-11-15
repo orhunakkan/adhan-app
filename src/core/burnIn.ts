@@ -1,5 +1,5 @@
-// Burn-in mitigation (brief §8.6, §9): a ±8 px layout shift and a rotating
-// screensaver-pill corner, both changing every 10 minutes.
+// Burn-in mitigation (brief §8.6, §9): a ±8 px layout shift that changes every
+// 10 minutes. With no screensaver (ADR-0007), this and night dim are the care.
 import type { Rng } from './ports';
 
 export const BURN_IN_INTERVAL_MS = 10 * 60_000;
@@ -25,12 +25,4 @@ export function createBurnInShift(rng: Rng, maxPx = BURN_IN_MAX_PX) {
       return current;
     },
   };
-}
-
-export const CORNERS = ['top-start', 'top-end', 'bottom-end', 'bottom-start'] as const;
-export type Corner = (typeof CORNERS)[number];
-
-export function pillCorner(now: Date): Corner {
-  const b = Math.floor(now.getTime() / BURN_IN_INTERVAL_MS);
-  return CORNERS[b % CORNERS.length]!;
 }

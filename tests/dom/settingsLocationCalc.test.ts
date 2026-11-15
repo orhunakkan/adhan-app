@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { LONG_PRESS_MS } from '../../src/ui/settings/shell';
 import { distanceKm, nearestCity } from '../../src/ui/settings/location';
 import { mountApp, testCities, type Mounted } from '../helpers/mountApp';
 
@@ -10,10 +9,8 @@ const q = (sel: string) => document.querySelector<HTMLElement>(sel)!;
 const qa = (sel: string) => [...document.querySelectorAll<HTMLElement>(sel)];
 const START = new Date('2026-05-10T17:00:00Z');
 
-function openSection(m: Mounted, id: string) {
-  const hot = q('.settings-hotspot');
-  hot.dispatchEvent(new Event('pointerdown'));
-  m.clock.advanceBy(LONG_PRESS_MS);
+function openSection(id: string) {
+  q('.settings-button').click();
   qa('.settings__section')
     .find((b) => b.dataset.section === id)!
     .click();
@@ -25,7 +22,7 @@ describe('location section', () => {
 
   it('shows the current location', () => {
     m = mountApp({ start: START });
-    openSection(m, 'location');
+    openSection('location');
     expect(q('.location__current').textContent).toBe(
       'Schaumburg, IL · 42.0334, -88.0834 · America/Chicago',
     );
@@ -33,7 +30,7 @@ describe('location section', () => {
 
   it('finds a city by an accent-insensitive search and applies it live', async () => {
     m = mountApp({ start: START });
-    openSection(m, 'location');
+    openSection('location');
     const input = q('input[type="search"]') as HTMLInputElement;
     input.value = 'istanbul';
     input.dispatchEvent(new Event('input'));
@@ -52,7 +49,7 @@ describe('location section', () => {
 
   it('shows "no results" for an unknown city and nothing for an empty query', async () => {
     m = mountApp({ start: START });
-    openSection(m, 'location');
+    openSection('location');
     const input = q('input[type="search"]') as HTMLInputElement;
     input.value = 'zzzqqq';
     input.dispatchEvent(new Event('input'));
@@ -68,7 +65,7 @@ describe('location section', () => {
       start: START,
       geolocation: { getPosition: () => Promise.resolve({ lat: 41.03, lng: 28.98 }) },
     });
-    openSection(m, 'location');
+    openSection('location');
     qa('button')
       .find((b) => b.textContent === 'Konumumu kullan')!
       .click();
@@ -87,7 +84,7 @@ describe('location section', () => {
       start: START,
       geolocation: { getPosition: () => Promise.resolve({ lat: -60, lng: -120 }) },
     });
-    openSection(m, 'location');
+    openSection('location');
     qa('button')
       .find((b) => b.textContent === 'Konumumu kullan')!
       .click();
@@ -97,7 +94,7 @@ describe('location section', () => {
 
   it('reports a geolocation failure', async () => {
     m = mountApp({ start: START });
-    openSection(m, 'location');
+    openSection('location');
     qa('button')
       .find((b) => b.textContent === 'Konumumu kullan')!
       .click();
@@ -107,7 +104,7 @@ describe('location section', () => {
 
   it('saves a valid manual location and rejects an invalid one', () => {
     m = mountApp({ start: START, location: null });
-    openSection(m, 'location');
+    openSection('location');
     const [name, lat, lng] = qa('.settings__pane input:not([type="search"])') as HTMLInputElement[];
     const tz = q('.settings__pane select') as HTMLSelectElement;
     name!.value = 'Home';
@@ -139,7 +136,7 @@ describe('location input validation', () => {
 
   it('refuses to save blank coordinates as 0,0', () => {
     m = mountApp({ start: START, location: null });
-    openSection(m, 'location');
+    openSection('location');
     const [name] = qa('.settings__pane input:not([type="search"])') as HTMLInputElement[];
     name!.value = 'Home';
     qa('button')
@@ -152,7 +149,7 @@ describe('location input validation', () => {
   it('loads the city list once for many keystrokes', async () => {
     let loads = 0;
     m = mountApp({ start: START, loadCities: () => (loads++, Promise.resolve(testCities())) });
-    openSection(m, 'location');
+    openSection('location');
     const input = q('input[type="search"]') as HTMLInputElement;
     for (const v of ['i', 'is', 'ist', 'ista']) {
       input.value = v;
@@ -175,7 +172,7 @@ describe('location input validation', () => {
       loadCities: () =>
         ++loads === 1 ? Promise.reject(new Error('offline')) : Promise.resolve(testCities()),
     });
-    openSection(m, 'location');
+    openSection('location');
     const input = q('input[type="search"]') as HTMLInputElement;
     input.value = 'oslo';
     input.dispatchEvent(new Event('input'));
@@ -204,7 +201,7 @@ describe('calculation section', () => {
 
   it('changes method, madhab and high-latitude rule, persisting each', () => {
     m = mountApp({ start: START });
-    openSection(m, 'calculation');
+    openSection('calculation');
     const [method, highLat] = qa('.settings__pane select') as HTMLSelectElement[];
     expect([...method!.options].map((o) => o.textContent)).toContain('Diyanet (Türkiye)');
     method!.value = 'Turkey';
@@ -227,7 +224,7 @@ describe('calculation section', () => {
   it('offset steppers shift the time shown behind the sheet immediately (live preview)', () => {
     m = mountApp({ start: START });
     const timeBefore = q('.chip[data-prayer="asr"] .chip__time').textContent;
-    openSection(m, 'calculation');
+    openSection('calculation');
     const plus = q('.stepper__button[aria-label="İkindi +"]');
     plus.click();
     expect(q('.stepper__value[aria-live]')).not.toBeNull();

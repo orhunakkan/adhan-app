@@ -1,12 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { defaultSettings } from '../../src/config/defaults';
 import { computeDay } from '../../src/core/prayerTimes';
-import {
-  LONG_PRESS_MS,
-  PIN_LOCKOUT_MS,
-  PIN_MAX_TRIES,
-  SETTINGS_IDLE_MS,
-} from '../../src/ui/settings/shell';
+import { PIN_LOCKOUT_MS, PIN_MAX_TRIES, SETTINGS_IDLE_MS } from '../../src/ui/settings/shell';
 import { SCHAUMBURG } from '../helpers/days';
 import { mountApp, type Mounted } from '../helpers/mountApp';
 
@@ -17,12 +12,11 @@ const q = (sel: string) => document.querySelector<HTMLElement>(sel);
 const qa = (sel: string) => [...document.querySelectorAll<HTMLElement>(sel)];
 const START = new Date('2026-05-10T17:00:00Z');
 
-function openSettings(m: Mounted) {
-  q('.settings-hotspot')!.dispatchEvent(new Event('pointerdown'));
-  m.clock.advanceBy(LONG_PRESS_MS);
+function openSettings() {
+  q('.settings-button')!.click();
 }
-function openAbout(m: Mounted) {
-  openSettings(m);
+function openAbout() {
+  openSettings();
   qa('.settings__section')
     .find((b) => b.dataset.section === 'about')!
     .click();
@@ -38,7 +32,7 @@ describe('settings PIN', () => {
 
   it('can be set from About (entered twice), then gates the sheet, and removed', () => {
     m = mountApp({ start: START });
-    openAbout(m);
+    openAbout();
     const pin = (k: string) => q(`[data-key="${k}"]`) as HTMLInputElement;
     pin('pin-new').value = '1234';
     pin('pin-repeat').value = '1243';
@@ -52,7 +46,7 @@ describe('settings PIN', () => {
     expect(JSON.parse(m.store.get('adhan.settings')!).pin).toBe('1234');
 
     q('.settings')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    openSettings(m);
+    openSettings();
     expect(q('.pin')).not.toBeNull();
     for (const d of '1234') key(d);
     qa('.settings__section')
@@ -64,7 +58,7 @@ describe('settings PIN', () => {
 
   it(`locks the pad for ${PIN_LOCKOUT_MS / 1000} s after ${PIN_MAX_TRIES} wrong PINs`, () => {
     m = mountApp({ start: START, settings: { pin: '4821' } });
-    openSettings(m);
+    openSettings();
     for (let i = 0; i < PIN_MAX_TRIES; i++) for (const d of '0000') key(d);
     expect(q('.pin__error')!.textContent).toBe('Çok fazla deneme; 30 sn bekleyin');
     for (const d of '4821') key(d); // the right PIN is ignored while locked
@@ -77,7 +71,7 @@ describe('settings PIN', () => {
   it('closes and re-locks after 2 minutes without a touch', async () => {
     m = mountApp({ start: START });
     await m.app.tapStart(); // otherwise the start overlay keeps the main screen inert
-    openSettings(m);
+    openSettings();
     m.clock.advanceBy(SETTINGS_IDLE_MS - 1000);
     q('.settings')!.dispatchEvent(new Event('pointerdown', { bubbles: true })); // activity
     m.clock.advanceBy(SETTINGS_IDLE_MS - 1000);
@@ -92,7 +86,7 @@ describe('settings PIN', () => {
     const t = computeDay('2026-05-10', SCHAUMBURG, calc);
     m = mountApp({ start: new Date(t.asr.getTime() - 30_000) });
     await m.app.tapStart();
-    openSettings(m);
+    openSettings();
     expect(q('.settings')).not.toBeNull();
     await m.clock.advanceToAsync(new Date(t.asr.getTime() + 1000));
     await flush();
@@ -112,7 +106,7 @@ describe('settings PIN', () => {
       },
     });
     waiting!();
-    openAbout(m);
+    openAbout();
     q('[data-key="apply-update"]')!.click();
     expect(applied).toBe(1);
   });

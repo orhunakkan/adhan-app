@@ -9,7 +9,6 @@ describe('zod configuration', () => {
       const { settingsSchema } = await import('../../src/config/schema');
       const { defaultSettings } = await import('../../src/config/defaults');
       await import('../../src/core/cities');
-      await import('../../src/core/panels');
       expect(settingsSchema.parse(defaultSettings)).toEqual(defaultSettings);
       const { z } = await import('../../src/config/zod');
       expect(z.config().jitless).toBe(true);

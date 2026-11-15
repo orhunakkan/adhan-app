@@ -9,7 +9,7 @@ export interface Clock {
   now(): Date;
   setInterval(fn: () => void, ms: number): TimerHandle;
   clearInterval(handle: TimerHandle): void;
-  /** Short UI timers only (toasts, long-press, fades). */
+  /** Short UI timers only (toasts, idle close, fades). */
   setTimeout(fn: () => void, ms: number): TimerHandle;
   clearTimeout(handle: TimerHandle): void;
 }
@@ -48,7 +48,7 @@ export interface KeyValueStore {
   remove(key: string): void;
 }
 
-/** Blob storage for uploaded audio and photos (IndexedDB in production). */
+/** Blob storage for uploaded azan audio (IndexedDB in production). */
 export interface BlobStore {
   get(key: string): Promise<Blob | undefined>;
   set(key: string, value: Blob): Promise<void>;
@@ -77,12 +77,6 @@ export interface ObjectUrls {
 /** One-shot position (used once to set the location, brief §5). */
 export interface GeolocationPort {
   getPosition(): Promise<{ lat: number; lng: number }>;
-}
-
-/** Resizes an uploaded photo to <= 2048 px (long edge), JPEG ~0.85 (brief §9). */
-export interface PhotoProcessor {
-  /** Fits the photo within `maxEdge` px (default 2048, the iPad's screen); JPEG ~0.85. */
-  resize(file: Blob, maxEdge?: number): Promise<Blob>;
 }
 
 /** Service worker registration (workbox-window in production). */

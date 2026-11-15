@@ -43,7 +43,7 @@ describe('night dim', () => {
     m = mountApp({ start: new Date('2026-05-11T06:00:00Z') }); // 01:00 CDT
     expect(q('.night-dim').classList.contains('night-dim--active')).toBe(true);
     expect(q('.night-dim').style.opacity).toBe('0.7');
-    expect(q('.screensaver').classList.contains('screensaver--active')).toBe(false);
+    expect(document.querySelector('.screensaver')).toBeNull(); // main screen only (ADR-0007)
     m.clock.advanceTo(new Date(t11.fajr.getTime() - 60_000));
     expect(q('.night-dim').classList.contains('night-dim--active')).toBe(false);
     m.dispose();

@@ -219,15 +219,37 @@
 }
 
 @layer components {
-  /* Settings (brief §8.8): translucent sheet, grouped inset lists. */
-  .settings-hotspot {
+  /*
+   * Settings (brief §8.8): translucent sheet, grouped inset lists. The way in is
+   * a quiet gear at the top inline-start corner (top-left in tr/en, top-right in
+   * ar), below the azan screen, the settings layer and overlays.
+   */
+  .settings-button {
     position: fixed;
-    inset-block-start: 0;
-    inset-inline-end: 0;
+    inset-block-start: max(var(--space-4), env(safe-area-inset-top));
+    inset-inline-start: max(var(--space-4), env(safe-area-inset-left));
     z-index: 30;
-    inline-size: 72px;
-    block-size: 72px;
-    opacity: 0;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    color: var(--text-2);
+    background: none;
+    border: 0;
+    opacity: 0.35;
+
+    &:hover,
+    &:focus-visible {
+      opacity: 0.8;
+    }
+
+    & .icon {
+      inline-size: 24px;
+      block-size: 24px;
+    }
+  }
+
+  :root[dir='rtl'] .settings-button {
+    inset-inline-start: max(var(--space-4), env(safe-area-inset-right));
   }
 
   .settings-layer {

@@ -52,7 +52,6 @@ export const DEFAULT_AUDIO = {
 
 export const THEMES = ['midnight', 'emerald', 'sand'] as const;
 export const LANGUAGES = ['tr', 'en', 'ar'] as const;
-export const SCREENSAVER_MODES = ['panels', 'photos', 'alternate'] as const;
 
 export const settingsSchema = z.object({
   settingsVersion: z.literal(SETTINGS_VERSION).default(SETTINGS_VERSION),
@@ -96,8 +95,6 @@ export const settingsSchema = z.object({
       language: z.enum(LANGUAGES).default('tr'),
       hour12: z.boolean().default(false),
       showSeconds: z.boolean().default(false),
-      panelIntervalSec: z.int().min(15).max(600).default(60),
-      screensaverMode: z.enum(SCREENSAVER_MODES).default('panels'),
       pattern: z.boolean().default(true),
       glass: z.boolean().default(false),
       nightDim: z
@@ -110,11 +107,6 @@ export const settingsSchema = z.object({
         .prefault({}),
     })
     .prefault({}),
-  /** IndexedDB keys of uploaded photos, in display order. */
-  photos: z
-    .array(z.string().regex(/^[A-Za-z0-9_-]+$/))
-    .max(200)
-    .default([]),
   /** Optional 4-digit settings PIN. */
   pin: z
     .string()

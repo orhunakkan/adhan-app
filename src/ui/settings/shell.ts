@@ -1,5 +1,5 @@
-// Settings sheet (brief §8.8, §9): opened by a 3 s long-press on a corner,
-// optionally behind a 4-digit PIN. Landscape: sidebar + pane. Portrait:
+// Settings sheet (brief §8.8, §9): opened by a tap on the subtle gear button in
+// the top inline-start corner, optionally behind a 4-digit PIN. Landscape: sidebar + pane. Portrait:
 // drill-down list. A translucent sheet, so changes preview live behind it.
 import type { App, AppState } from '../../app/createApp';
 import type { Settings } from '../../config/schema';
@@ -7,16 +7,15 @@ import type { City } from '../../core/cities';
 import type { Clock, GeolocationPort, TimerHandle } from '../../core/ports';
 import { t, type Lang, type MessageKey } from '../../i18n';
 import { h, openModal, setAttr, toggleClass, trapTab } from '../dom';
+import { settingsIcon } from '../icons';
 import { actionButton } from './controls';
 
-export const LONG_PRESS_MS = 3000;
 /** The sheet closes (and re-locks) after this long without a touch. */
 export const SETTINGS_IDLE_MS = 2 * 60_000;
 export const PIN_MAX_TRIES = 5;
 export const PIN_LOCKOUT_MS = 30_000;
 
-export type SectionId =
-  'location' | 'calculation' | 'azan' | 'display' | 'photos' | 'about' | 'debug';
+export type SectionId = 'location' | 'calculation' | 'azan' | 'display' | 'about' | 'debug';
 
 export interface SettingsServices {
   geolocation: GeolocationPort;
@@ -26,14 +25,8 @@ export interface SettingsServices {
   saveAudio(file: Blob): Promise<string>;
   /** Bytes used by uploaded files. */
   storageUsed(): Promise<number>;
-  /** Resizes, stores and appends photos to settings.photos (rejects with UploadError). */
-  savePhotos(files: Blob[]): Promise<void>;
   /** Deletes every uploaded file (Reset all settings). */
   clearFiles(): Promise<void>;
-  deletePhoto(key: string): Promise<void>;
-  /** An object URL for a stored photo (caller revokes with revokeUrl), or null. */
-  photoUrl(key: string): Promise<string | null>;
-  revokeUrl(url: string): void;
 }
 
 export interface SettingsContext {
@@ -61,8 +54,6 @@ export interface SettingsSection {
   id: SectionId;
   /** Not listed in the sidebar (reached from another section, e.g. Diagnostics). */
   hidden?: boolean;
-  /** Releases what the last render created (object URLs); called before re-render and on close. */
-  destroy?(): void;
   render(pane: HTMLElement, ctx: SettingsContext): void;
 }
 
@@ -86,11 +77,13 @@ export function mountSettings(
     services: SettingsServices;
   },
 ): SettingsView {
-  const hotspot = h('button', 'settings-hotspot touch-target');
-  hotspot.type = 'button';
+  // A visible but quiet gear: one tap opens the sheet (the PIN pad guards it when set).
+  const button = h('button', 'settings-button touch-target');
+  button.type = 'button';
+  button.append(settingsIcon());
   const layer = h('div', 'settings-layer');
   layer.hidden = true;
-  root.append(hotspot, layer);
+  root.append(button, layer);
 
   let open = false;
   let unlocked = false;
@@ -98,7 +91,6 @@ export function mountSettings(
   let drilled = false;
   let renderedSettings: AppState['settings'] | null = null;
   let renderedKey = '';
-  let pressTimer: TimerHandle | null = null;
   let idleTimer: TimerHandle | null = null;
   let wrongTries = 0;
   let restoreInert: (() => void) | null = null;
@@ -114,19 +106,7 @@ export function mountSettings(
   const lang = () => deps.app.state().settings.display.language;
   const tr = (key: MessageKey) => t(lang(), key);
 
-  const cancelPress = () => {
-    if (pressTimer !== null) deps.clock.clearTimeout(pressTimer);
-    pressTimer = null;
-  };
-  hotspot.addEventListener('pointerdown', () => {
-    cancelPress();
-    pressTimer = deps.clock.setTimeout(() => {
-      pressTimer = null;
-      view.open();
-    }, LONG_PRESS_MS);
-  });
-  for (const ev of ['pointerup', 'pointercancel', 'pointerleave'])
-    hotspot.addEventListener(ev, cancelPress);
+  button.addEventListener('click', () => view.open());
 
   const openSection = (id: SectionId) => {
     current = id;
@@ -287,7 +267,6 @@ export function mountSettings(
       (active && layer.contains(active)
         ? active.closest<HTMLElement>('[data-key]')?.dataset.key
         : undefined) ?? lastKey;
-    for (const sec of deps.sections) sec.destroy?.();
     layer.replaceChildren(unlocked ? sheet() : pinPad());
     const pane = layer.querySelector('.settings__pane');
     if (pane && sameView) pane.scrollTop = scroll;
@@ -319,7 +298,6 @@ export function mountSettings(
       idleTimer = null;
       unlocked = false;
       layer.hidden = true;
-      for (const sec of deps.sections) sec.destroy?.();
       layer.replaceChildren();
       restoreInert?.();
       restoreInert = null;
@@ -328,17 +306,16 @@ export function mountSettings(
     isOpen: () => open,
     render(s) {
       // The corner button's name follows the UI language.
-      setAttr(hotspot, 'aria-label', t(s.settings.display.language, 'settings.title'));
+      setAttr(button, 'aria-label', t(s.settings.display.language, 'settings.title'));
       draw();
     },
     destroy() {
-      cancelPress();
       if (idleTimer !== null) deps.clock.clearTimeout(idleTimer);
-      hotspot.remove();
+      button.remove();
       layer.remove();
     },
   };
-  hotspot.setAttribute('aria-label', tr('settings.title'));
+  button.setAttribute('aria-label', tr('settings.title'));
   portrait.addEventListener('change', () => draw(true));
   return view;
 }

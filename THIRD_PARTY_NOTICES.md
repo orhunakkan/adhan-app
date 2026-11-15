@@ -28,7 +28,6 @@ The woff2 subsets come from the `@fontsource` packages (`scripts/copy-fonts.mjs`
 | Content | License / status | Attribution |
 |---|---|---|
 | `public/data/cities.json` | CC BY 4.0 | Derived from GeoNames `cities15000` (https://www.geonames.org), filtered to places with ≥ 50,000 inhabitants by `scripts/build-cities.mjs` |
-| `public/panels/panels.json` (placeholders) | Public domain | Qur'an text in Arabic; English translation by Marmaduke Pickthall, *The Meaning of the Glorious Koran* (1930) |
 | Dua text in the azan screen | Arabic hadith text (public domain); Turkish and English renderings written for this project | — |
 
 ## Not included

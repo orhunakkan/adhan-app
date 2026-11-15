@@ -30,7 +30,7 @@ describe('manifest.webmanifest', () => {
 });
 
 describe('service worker precache', () => {
-  it('includes the shell, every JS/CSS file, fonts, panels, cities, patterns and the silent clip', () => {
+  it('includes the shell, every JS/CSS file, fonts, cities, patterns and the silent clip', () => {
     const required = files.filter(
       (f) =>
         f === 'index.html' ||
@@ -38,7 +38,6 @@ describe('service worker precache', () => {
         (f.startsWith('fonts/') && f.endsWith('.woff2')) ||
         f.startsWith('patterns/') ||
         f.startsWith('audio/') ||
-        f === 'panels/panels.json' ||
         f === 'data/cities.json',
     );
     expect(required.length).toBeGreaterThan(10);

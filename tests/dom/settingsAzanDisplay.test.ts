@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { LONG_PRESS_MS } from '../../src/ui/settings/shell';
 import { mountApp, type Mounted } from '../helpers/mountApp';
 
 const flush = async () => {
@@ -9,9 +8,8 @@ const q = (sel: string) => document.querySelector<HTMLElement>(sel)!;
 const qa = (sel: string) => [...document.querySelectorAll<HTMLElement>(sel)];
 const START = new Date('2026-05-10T17:00:00Z');
 
-function openSection(m: Mounted, id: string) {
-  q('.settings-hotspot').dispatchEvent(new Event('pointerdown'));
-  m.clock.advanceBy(LONG_PRESS_MS);
+function openSection(id: string) {
+  q('.settings-button').click();
   qa('.settings__section')
     .find((b) => b.dataset.section === id)!
     .click();
@@ -25,7 +23,7 @@ describe('azan section', () => {
   it('Test plays the selected source through the single player; Stop ends it', async () => {
     m = mountApp({ start: START });
     await m.app.tapStart();
-    openSection(m, 'azan');
+    openSection('azan');
     group('asr').querySelector<HTMLButtonElement>('[data-key="test:asr"]')!.click();
     await flush();
     expect(m.player!.src).toBe('/audio/rast.m4a');
@@ -37,7 +35,7 @@ describe('azan section', () => {
 
   it('enables/disables a prayer and changes its source, persisting both', () => {
     m = mountApp({ start: START });
-    openSection(m, 'azan');
+    openSection('azan');
     group('asr').querySelector<HTMLButtonElement>('[role="switch"]')!.click();
     const sel = group('dhuhr').querySelector('select')!;
     sel.value = 'bundled:hicaz';
@@ -49,7 +47,7 @@ describe('azan section', () => {
 
   it('uploads a file to IndexedDB and assigns it to the prayer', async () => {
     m = mountApp({ start: START });
-    openSection(m, 'azan');
+    openSection('azan');
     const input = group('isha').querySelector<HTMLInputElement>('input[type="file"]')!;
     expect(input.accept).toBe('audio/*');
     const file = new File(['abcd'], 'isha.m4a', { type: 'audio/mp4' });
@@ -69,14 +67,14 @@ describe('azan section', () => {
     m.player!.rejectNextPlay('NotSupportedError');
     await m.app.testAudio('bundled:rast');
     await flush();
-    openSection(m, 'azan');
+    openSection('azan');
     expect(group('asr').querySelector('.row--warning')!.textContent).toMatch(/zil/);
     expect(group('dhuhr').querySelector('.row--warning')).toBeNull();
   });
 
   it('dua toggle, late window and pre-alert steppers', () => {
     m = mountApp({ start: START });
-    openSection(m, 'azan');
+    openSection('azan');
     qa('.settings [role="switch"]').at(-1)!.click();
     q('.stepper__button[aria-label="Gecikme penceresi +"]').click();
     q('.stepper__button[aria-label="Ön uyarı −"]').click();
@@ -88,7 +86,7 @@ describe('azan section', () => {
   });
   it('dua source select persists the chosen file', () => {
     m = mountApp({ start: START });
-    openSection(m, 'azan');
+    openSection('azan');
     const sel = q('select[data-key="Dua sesi"]') as HTMLSelectElement;
     const other = [...sel.options].find((o) => o.value !== sel.value)!.value;
     sel.value = other;
@@ -104,7 +102,7 @@ describe('display section', () => {
 
   it('switches theme and language (RTL) live', async () => {
     m = mountApp({ start: START });
-    openSection(m, 'display');
+    openSection('display');
     qa('[role="radio"]')
       .find((r) => r.textContent === 'Kum')!
       .click();
@@ -126,32 +124,26 @@ describe('display section', () => {
     );
   });
 
-  it('12-hour clock, seconds, pattern, glass, screensaver and panel interval', () => {
+  it('12-hour clock, seconds, pattern and glass', () => {
     m = mountApp({ start: START });
-    openSection(m, 'display');
+    openSection('display');
     qa('[role="radio"]')
       .find((r) => r.textContent === '12')!
       .click();
     qa('.settings [role="switch"]')[0]!.click(); // seconds
     qa('.settings [role="switch"]')[2]!.click(); // glass (re-queried: the pane re-rendered)
-    qa('[role="radio"]')
-      .find((r) => r.textContent === 'Karışık')!
-      .click();
-    q('.stepper__button[aria-label="Pano süresi +"]').click();
     const d = m.app.state().settings.display;
     expect(d).toMatchObject({
       hour12: true,
       showSeconds: true,
       glass: true,
-      screensaverMode: 'alternate',
-      panelIntervalSec: 75,
     });
     expect(q('.clock__ampm').textContent).not.toBe('');
   });
 
   it('a handler from an earlier render merges against the live settings', () => {
     m = mountApp({ start: START });
-    openSection(m, 'display');
+    openSection('display');
     const stale = qa('.settings [role="switch"]');
     stale[0]!.click(); // seconds on → pane re-renders
     stale[2]!.click(); // glass, via the detached node
@@ -160,7 +152,7 @@ describe('display section', () => {
 
   it('night dim schedule and opacity', () => {
     m = mountApp({ start: START });
-    openSection(m, 'display');
+    openSection('display');
     q('.stepper__button[aria-label="Yatsıdan sonra −"]').click();
     q('.stepper__button[aria-label="İmsaktan önce +"]').click();
     q('.stepper__button[aria-label="Karartma +"]').click();
@@ -174,7 +166,7 @@ describe('display section', () => {
 
   it('pattern and night-dim switches flip their setting and the live view', () => {
     m = mountApp({ start: START });
-    openSection(m, 'display');
+    openSection('display');
     const before = m.app.state().settings.display;
     q('[data-key="Geometrik desen"]').click();
     expect(m.app.state().settings.display.pattern).toBe(!before.pattern);
@@ -194,7 +186,7 @@ describe('about section', () => {
   it('shows the version and storage used without navigator.storage.estimate', async () => {
     m = mountApp({ start: START });
     await m.blobs.set('x', new Blob(['12345678']));
-    openSection(m, 'about');
+    openSection('about');
     await flush();
     expect(q('.about__version').textContent).toMatch(/^v\d+\.\d+\.\d+$/);
     expect(q('.about__storage').textContent).toBe('8 B');
@@ -204,7 +196,7 @@ describe('about section', () => {
     m = mountApp({ start: START });
     await m.blobs.set('a1', new Blob(['x']));
     await m.blobs.set('p1', new Blob(['y']));
-    openSection(m, 'about');
+    openSection('about');
     q('[data-key="reset"]').click();
     q('[data-key="reset"]').click();
     await flush();
@@ -239,7 +231,7 @@ describe('about section', () => {
 
   it('rejects a non-audio upload with a clear message', async () => {
     m = mountApp({ start: START });
-    openSection(m, 'azan');
+    openSection('azan');
     const input = q('.group[data-prayer="isha"] input[type="file"]') as HTMLInputElement;
     Object.defineProperty(input, 'files', {
       value: [new File(['x'], 'x.png', { type: 'image/png' })],
@@ -252,7 +244,7 @@ describe('about section', () => {
 
   it('Reset needs a second tap, then restores defaults', () => {
     m = mountApp({ start: START, settings: { pin: null } });
-    openSection(m, 'about');
+    openSection('about');
     q('[data-key="reset"]').click();
     expect(m.app.state().settings.location).not.toBeNull();
     expect(q('[data-key="reset"]').textContent).toBe('Sıfırlamayı onaylayın');
