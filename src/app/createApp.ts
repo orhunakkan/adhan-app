@@ -12,7 +12,6 @@ import type {
   MediaPlayer,
   ObjectUrls,
   Rng,
-  TimerHandle,
   WakeLockPort,
 } from '../core/ports';
 import type { AzanPrayer } from '../core/prayerTimes';
@@ -70,6 +69,8 @@ export interface App {
   tapStart(): Promise<void>;
   resume(): Promise<void>;
   stopAzan(): void;
+  /** Stops a settings "Test azan" playback only. */
+  stopTest(): void;
   testAudio(source: string): Promise<void>;
   log: Logger;
   dispose(): void;
@@ -78,9 +79,9 @@ export interface App {
 /** How long the azan moment stays on screen when no audio can play. */
 export const SILENT_AZAN_MS = 3 * 60_000;
 /** Upper bound on an azan moment, whatever the audio does: the app can never stay stuck in it. */
-export const MAX_AZAN_MS = 15 * 60_000;
+export const MAX_AZAN_MS = 20 * 60_000;
 /** A queued azan (coincident prayers) still plays if it is at most this old. */
-const QUEUE_MAX_AGE_MS = 10 * 60_000;
+const QUEUE_MAX_AGE_MS = 25 * 60_000;
 /** After "Tap to enable azan", an azan this recent is replayed. */
 const REPLAY_WINDOW_MS = 5 * 60_000;
 
@@ -108,7 +109,12 @@ export function createApp(deps: AppDeps): App {
     wakeLock: 'idle',
   });
   const queue: PrayerEvent[] = [];
-  let silentTimer: TimerHandle | null = null;
+  /** When the current azan moment appeared (checked on every tick, no long timers). */
+  let azanShownAt = 0;
+  /** Audio was asked to play the current azan moment. */
+  let azanAudio = false;
+  /** A Start/Enable tap is re-unlocking and may replay: don't auto-close meanwhile. */
+  let tapping: Promise<void> | null = null;
 
   const setOverlay = () => {
     const s = store.get();
@@ -138,35 +144,49 @@ export function createApp(deps: AppDeps): App {
     onChange: (status) => store.update({ wakeLock: status }),
   });
 
-  const clearSilentTimer = () => {
-    if (silentTimer !== null) deps.clock.clearTimeout(silentTimer);
-    silentTimer = null;
+  const playCurrent = async (prayer: AzanPrayer) => {
+    azanAudio = true;
+    try {
+      await audio.playAzan(prayer);
+    } catch (err) {
+      log.error('playAzan failed', String(err));
+    }
   };
 
-  const endAzan = () => {
-    clearSilentTimer();
+  /** The one way an azan moment ends: hide it, optionally stop audio, then start the next queued one. */
+  const closeAzan = (stopAudio: boolean) => {
+    if (!store.get().azan) return;
+    azanAudio = false;
     store.update({ azan: null });
-    const next = queue.shift();
-    if (next && deps.clock.now().getTime() - next.at.getTime() <= QUEUE_MAX_AGE_MS) {
-      startAzan(next);
+    if (stopAudio) audio.stop();
+    const now = deps.clock.now().getTime();
+    while (queue.length) {
+      const next = queue.shift()!;
+      if (now - next.at.getTime() <= QUEUE_MAX_AGE_MS) {
+        startAzan(next);
+        return;
+      }
+      log.warn('queued azan too old; skipped', { key: next.key });
     }
   };
 
   const startAzan = (e: PrayerEvent) => {
-    clearSilentTimer();
+    azanShownAt = deps.clock.now().getTime();
+    azanAudio = false;
     store.update({ azan: { prayer: e.prayer, key: e.key, at: e.at } });
-    const status = audio.state().status;
-    if (status === 'locked' || store.get().startRequired) {
-      // No unlock yet: show the moment, then return to the clock.
-      silentTimer = deps.clock.setTimeout(endAzan, SILENT_AZAN_MS);
-      return;
-    }
-    silentTimer = deps.clock.setTimeout(() => {
-      log.warn('azan moment hit the safety cap; ending it', { key: e.key });
-      audio.stop();
-      endAzan();
-    }, MAX_AZAN_MS);
-    void audio.playAzan(e.prayer);
+    // Before the Start tap nothing can sound: show the moment, then return to the clock.
+    if (audio.state().status === 'locked' || store.get().startRequired) return;
+    void playCurrent(e.prayer);
+  };
+
+  /** Ends a moment that outlived its limit; runs on the 1 s tick. */
+  const checkAzanAge = (now: Date) => {
+    if (!store.get().azan) return;
+    const limit = azanAudio ? MAX_AZAN_MS : SILENT_AZAN_MS;
+    if (now.getTime() - azanShownAt < limit) return;
+    if (azanAudio)
+      log.warn('azan moment hit the safety cap; ending it', { key: store.get().azan?.key });
+    closeAzan(true);
   };
 
   const audio = createAudioController({
@@ -178,10 +198,10 @@ export function createApp(deps: AppDeps): App {
     log,
     getSettings: () => store.get().settings,
     onChange: (a) => {
-      const wasActive = store.get().audio.phase === 'azan' || store.get().audio.phase === 'dua';
       store.update({ audio: a });
       setOverlay();
-      if (wasActive && a.status === 'ready' && a.phase === null && store.get().azan) endAzan();
+      // Audio went idle (ended, chime done, stopped): close the moment.
+      if (azanAudio && !tapping && a.phase === null && a.status === 'ready') closeAzan(false);
     },
   });
 
@@ -210,7 +230,10 @@ export function createApp(deps: AppDeps): App {
     store: deps.store,
     getSettings: () => store.get().settings,
     onEvent,
-    onTick: (now, days) => store.update(withPeriod(now, days)),
+    onTick: (now, days) => {
+      store.update(withPeriod(now, days));
+      checkAzanAge(now);
+    },
     onError: (msg, err) => log.error(msg, String(err)),
   });
 
@@ -244,34 +267,41 @@ export function createApp(deps: AppDeps): App {
       store.update({ settings: next, needsLocation: next.location === null });
       scheduler.refresh();
     },
-    async tapStart() {
-      const ok = await audio.unlock();
-      if (!ok) return;
-      store.update({ startRequired: false });
-      setOverlay();
-      log.info('audio unlocked');
-      void wakeLock.acquire();
-      const current = store.get().azan;
-      if (
-        current &&
-        audio.state().status !== 'playing' &&
-        deps.clock.now().getTime() - current.at.getTime() <= REPLAY_WINDOW_MS
-      ) {
-        clearSilentTimer();
-        void audio.playAzan(current.prayer);
-      }
+    tapStart() {
+      // A double tap must not run two unlocks (or two replays).
+      tapping ??= (async () => {
+        try {
+          const ok = await audio.unlock();
+          if (!ok) return;
+          store.update({ startRequired: false });
+          setOverlay();
+          log.info('audio unlocked');
+          void wakeLock.acquire();
+          const current = store.get().azan;
+          if (!current || audio.state().status === 'playing') return;
+          if (deps.clock.now().getTime() - current.at.getTime() <= REPLAY_WINDOW_MS) {
+            await playCurrent(current.prayer);
+          } else {
+            closeAzan(false);
+          }
+        } finally {
+          tapping = null;
+        }
+      })();
+      return tapping;
     },
     resume: () => audio.resume(),
     stopAzan() {
-      queue.length = 0;
-      audio.stop();
-      if (store.get().azan) endAzan();
+      if (store.get().azan) closeAzan(true);
+      else audio.stop();
+    },
+    stopTest() {
+      if (audio.state().phase === 'test') audio.stop();
     },
     testAudio: (source) => audio.testSource(source),
     log,
     dispose() {
       scheduler.stop();
-      clearSilentTimer();
       overlayView.destroy();
       toast.destroy();
       main.remove();

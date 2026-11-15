@@ -51,7 +51,7 @@ describe('getDuePrayer', () => {
   it('is not blocked by other fired keys, older or newer', () => {
     const fired = ['2026-05-10:dhuhr', '2026-05-10:maghrib', '2026-12-01:fajr'].map((key) => ({
       key,
-      at: Number.NaN,
+      at: null,
     }));
     expect(due(plus(today.asr, 10 * SEC), { fired })?.prayer).toBe('asr');
   });
@@ -88,14 +88,11 @@ describe('getDuePrayer', () => {
     expect(getDuePrayer({ ...input, fired: both })).toBeNull();
   });
 
-  it('treats the same key hours apart as a different azan (location moved)', () => {
-    const fired = [{ key: '2026-05-10:asr', at: today.asr.getTime() - 8 * 60 * MIN }];
-    expect(due(plus(today.asr, SEC), { fired })?.prayer).toBe('asr');
-  });
-
-  it('treats the same key within an hour as the same azan (offset changed)', () => {
-    const fired = [{ key: '2026-05-10:asr', at: today.asr.getTime() - 25 * MIN }];
-    expect(due(plus(today.asr, SEC), { fired })).toBeNull();
+  it('a key fires at most once, whatever its instant was (settings or location changed)', () => {
+    for (const shift of [-8 * 60 * MIN, -75 * MIN, -25 * MIN]) {
+      const fired = [{ key: '2026-05-10:asr', at: today.asr.getTime() + shift }];
+      expect(due(plus(today.asr, SEC), { fired })).toBeNull();
+    }
   });
 
   it("does not fire yesterday's prayers on a new day", () => {
@@ -113,14 +110,16 @@ describe('fired keys', () => {
 
   it.each([
     [null, []],
-    ['2026-05-10:asr', [{ key: '2026-05-10:asr', at: Number.NaN }]],
+    ['2026-05-10:asr', [{ key: '2026-05-10:asr', at: null }]],
     [
       '[{"key":"2026-05-10:asr","at":5},"2026-05-10:isha","junk",3,{"key":"x","at":1},{"key":"2026-05-10:fajr"}]',
       [
         { key: '2026-05-10:asr', at: 5 },
-        { key: '2026-05-10:isha', at: Number.NaN },
+        { key: '2026-05-10:isha', at: null },
+        { key: '2026-05-10:fajr', at: null },
       ],
     ],
+    ['[{"key":"2026-05-10:asr","at":null}]', [{ key: '2026-05-10:asr', at: null }]],
     ['{"a":1}', []],
     ['not json', []],
   ])('parseFiredList(%j) → %j', (raw, list) => {

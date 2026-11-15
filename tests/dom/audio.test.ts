@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { defaultSettings } from '../../src/config/defaults';
 import type { Settings } from '../../src/config/schema';
 import {
+  BLOB_TIMEOUT_MS,
+  INTERRUPT_CONFIRM_MS,
   createAudioController,
   PLAY_TIMEOUT_MS,
   SILENCE_URL,
@@ -338,15 +340,25 @@ describe('healthCheck', () => {
     expect(t.audio.state().status).toBe('playing');
   });
 
-  it('an unlock tap while an azan is starting does not replace it', async () => {
+  it('an unlock tap while an azan is still starting re-unlocks (the app then replays it)', async () => {
     const t = setup();
     await t.audio.unlock();
     t.player.holdNextPlay();
     const pending = t.audio.playAzan('asr');
     await flush();
-    expect(await t.audio.unlock()).toBe(true);
-    t.player.release();
+    const unlocked = t.audio.unlock();
+    t.player.release(); // the pending azan play() settles stale
     await pending;
+    expect(await unlocked).toBe(true);
+    expect(t.player.src).toBe(SILENCE_URL);
+    expect(t.audio.state()).toMatchObject({ status: 'ready', phase: null });
+  });
+
+  it('an unlock tap while an azan is actually playing leaves it alone', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    await t.audio.playAzan('asr');
+    expect(await t.audio.unlock()).toBe(true);
     expect(t.player.src).toBe('/audio/rast.m4a');
     expect(t.audio.state().status).toBe('playing');
   });
@@ -578,12 +590,24 @@ describe('audio review regressions', () => {
     expect(t.audio.state().status).toBe('playing');
   });
 
-  it('I4: an aborted silent clip is inconclusive, not blocked', async () => {
+  it('an aborted silent clip fails a health check (any error is loud)', async () => {
     const t = setup();
     await t.audio.unlock();
     t.player.rejectNextPlay('AbortError');
-    expect(await t.audio.healthCheck()).toBe(true);
-    expect(t.audio.state().status).toBe('ready');
+    expect(await t.audio.healthCheck()).toBe(false);
+    expect(t.audio.state().status).toBe('blocked');
+  });
+
+  it('inside the Start tap, only NotAllowedError fails the unlock', async () => {
+    for (const name of ['AbortError', 'NotSupportedError']) {
+      const t = setup();
+      t.audio.state();
+      const first = t.audio.unlock(); // creates the player
+      await first;
+      t.player.rejectNextPlay(name);
+      expect(await t.audio.unlock()).toBe(true);
+      expect(t.audio.state().status).toBe('ready');
+    }
   });
 
   it('I6: a resume that settles after stop() does not flip back to playing', async () => {
@@ -727,5 +751,186 @@ describe('audio review regressions', () => {
     await t.audio.playAzan('asr');
     expect(t.player.sources).toEqual([SILENCE_URL]);
     expect(t.audio.state()).toMatchObject({ status: 'ready', phase: null });
+  });
+});
+
+describe('second audio review regressions', () => {
+  it('C2: an IndexedDB read that never answers times out and falls back', async () => {
+    const t = setup({
+      ...defaultSettings,
+      azan: { ...defaultSettings.azan, audio: { ...defaultSettings.azan.audio, asr: 'user:a' } },
+    });
+    t.blobs.get = () => new Promise(() => {});
+    await t.audio.unlock();
+    vi.useFakeTimers();
+    try {
+      const pending = t.audio.playAzan('asr');
+      await vi.advanceTimersByTimeAsync(BLOB_TIMEOUT_MS);
+      await pending;
+      expect(t.player.src).toBe('/audio/rast.m4a');
+      expect(t.audio.state()).toMatchObject({ status: 'playing', missing: ['user:a'] });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('C4: a double Resume tap runs one loop: no chime, the azan keeps its screen', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    t.player.rejectNextPlay('AbortError');
+    await t.audio.playAzan('dhuhr');
+    expect(t.audio.state().status).toBe('interrupted');
+    t.player.holdNextPlay();
+    const r1 = t.audio.resume();
+    const r2 = t.audio.resume();
+    await flush();
+    t.player.release();
+    await Promise.all([r1, r2]);
+    expect(t.chime.played).toBe(0);
+    expect(t.audio.state()).toMatchObject({ status: 'playing', phase: 'azan' });
+  });
+
+  it('I4: a health check halts an interrupted settings test instead of skipping', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    await t.audio.testSource('bundled:rast');
+    t.player.interrupt();
+    t.player.rejectNextPlay('NotAllowedError');
+    expect(await t.audio.healthCheck()).toBe(false);
+    expect(t.audio.state()).toMatchObject({ status: 'blocked', phase: null });
+  });
+
+  it('I7: a throwing onChange listener does not wedge playback', async () => {
+    let calls = 0;
+    const t = setup(defaultSettings, () => {
+      calls++;
+      if (calls === 1) throw new Error('view crashed');
+    });
+    await t.audio.unlock();
+    await t.audio.playAzan('asr');
+    expect(t.audio.state().status).toBe('playing');
+  });
+
+  it('M1: with unknown duration, the natural end (pause then ended) is not an interruption', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    await t.audio.playAzan('isha');
+    t.player.duration = Number.NaN;
+    t.player.paused = true;
+    t.player.emit('pause');
+    t.player.emit('ended');
+    await new Promise((r) => setTimeout(r, INTERRUPT_CONFIRM_MS + 50));
+    expect(t.states.some((s) => s.status === 'interrupted')).toBe(false);
+    expect(t.audio.state().status).toBe('ready');
+  });
+
+  it('M1: with unknown duration, a pause without ended is confirmed as an interruption', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    await t.audio.playAzan('isha');
+    t.player.duration = Number.NaN;
+    t.player.interrupt();
+    expect(t.audio.state().status).toBe('playing');
+    await new Promise((r) => setTimeout(r, INTERRUPT_CONFIRM_MS + 50));
+    expect(t.audio.state().status).toBe('interrupted');
+  });
+
+  it('M4: a resume that is aborted again stays interrupted (logged)', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    await t.audio.playAzan('isha');
+    t.player.interrupt();
+    t.player.rejectNextPlay('AbortError');
+    await t.audio.resume();
+    expect(t.audio.state().status).toBe('interrupted');
+  });
+
+  it('M5: a stale silent-clip timeout does not pause a newer azan', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    vi.useFakeTimers();
+    try {
+      t.player.holdNextPlay();
+      const check = t.audio.healthCheck();
+      await t.audio.playAzan('asr'); // supersedes the check
+      const pauses = t.player.calls.filter((c) => c === 'pause').length;
+      await vi.advanceTimersByTimeAsync(PLAY_TIMEOUT_MS);
+      expect(await check).toBe(true);
+      expect(t.player.calls.filter((c) => c === 'pause').length).toBe(pauses);
+      expect(t.audio.state().status).toBe('playing');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a rejection that is not an Error (IndexedDB) still falls back', async () => {
+    const t = setup({
+      ...defaultSettings,
+      azan: { ...defaultSettings.azan, audio: { ...defaultSettings.azan.audio, asr: 'user:a' } },
+    });
+    // A thenable rejecting with a plain string, as some IndexedDB shims do.
+    t.blobs.get = () =>
+      ({
+        then: (_ok: unknown, fail: (r: unknown) => void) => fail('string reason'),
+      }) as unknown as Promise<Blob>;
+    await t.audio.unlock();
+    await t.audio.playAzan('asr');
+    expect(t.player.src).toBe('/audio/rast.m4a');
+  });
+
+  it('a silent clip that never settles times out and fails the health check', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    vi.useFakeTimers();
+    try {
+      t.player.holdNextPlay();
+      const check = t.audio.healthCheck();
+      await vi.advanceTimersByTimeAsync(PLAY_TIMEOUT_MS);
+      expect(await check).toBe(false);
+      expect(t.player.calls.at(-1)).toBe('pause');
+      expect(t.audio.state().status).toBe('blocked');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a double Resume tap after an interruption plays once', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    await t.audio.playAzan('isha');
+    t.player.interrupt();
+    t.player.holdNextPlay();
+    const r1 = t.audio.resume();
+    const r2 = t.audio.resume();
+    t.player.release();
+    await Promise.all([r1, r2]);
+    expect(t.player.calls.filter((c) => c === 'play')).toHaveLength(3); // unlock, azan, one resume
+    expect(t.audio.state().status).toBe('playing');
+  });
+
+  it('a chime that throws still ends the attempt', async () => {
+    const t = setup();
+    t.chime.play = () => Promise.reject(new Error('AudioContext closed'));
+    await t.audio.unlock();
+    t.player.rejectNextPlay('NotSupportedError');
+    await t.audio.playAzan('dhuhr');
+    expect(t.audio.state()).toMatchObject({ status: 'ready', phase: null });
+  });
+
+  it('a resume whose play() never settles times out and moves on', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    await t.audio.playAzan('isha');
+    t.player.interrupt();
+    vi.useFakeTimers();
+    try {
+      t.player.holdNextPlay();
+      const pending = t.audio.resume();
+      await vi.advanceTimersByTimeAsync(PLAY_TIMEOUT_MS);
+      await pending;
+      expect(t.audio.state().missing).toEqual(['bundled:hicaz']);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

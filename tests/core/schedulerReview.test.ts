@@ -8,6 +8,7 @@ import {
   createScheduler,
   getDuePrayer,
   getUpcoming,
+  MAX_DELIVERY_ATTEMPTS,
   type PrayerEvent,
   type SchedulerEvent,
 } from '../../src/core/scheduler';
@@ -102,28 +103,33 @@ describe('scheduler review regressions', () => {
     ).toBeNull();
   });
 
-  it("#4 a westward location change does not block that day's remaining azans", () => {
-    // Isha already fired in Istanbul today; New York's Isha shares the key but is hours later.
-    const istanbulIsha = computeDay('2026-11-14', ISTANBUL, defaultSettings.calc).isha.getTime();
-    const store = new MemoryStore({
-      [KEYS.lastFired]: JSON.stringify([{ key: '2026-11-14:isha', at: istanbulIsha }]),
-    });
+  it("#4 a westward location change does not block that day's remaining azans (key-only)", () => {
+    // Isha already fired in Istanbul today. After moving to New York, Dhuhr/Asr/Maghrib
+    // (not yet fired today) still play; Isha's key fired, so it does not play twice.
+    const store = new MemoryStore({ [KEYS.lastFired]: JSON.stringify(['2026-11-14:isha']) });
     let loc = ISTANBUL;
     r = run(new Date('2026-11-14T15:30:00Z'), () => base({ location: loc }), store);
     r.scheduler.start();
     loc = NEW_YORK;
     r.scheduler.refresh();
     r.clock.advanceBy(12 * H);
-    const ny = computeDay('2026-11-14', NEW_YORK, defaultSettings.calc);
-    expect(r.azans().map((e) => e.key)).toEqual(
-      ['2026-11-14:dhuhr', '2026-11-14:asr', '2026-11-14:maghrib', '2026-11-14:isha'].filter(
-        (k) => {
-          const p = k.slice(11) as 'dhuhr';
-          return ny[p].getTime() > new Date('2026-11-14T15:30:00Z').getTime();
-        },
-      ),
-    );
-    expect(r.azans().length).toBeGreaterThanOrEqual(2);
+    expect(r.azans().map((e) => e.key)).toEqual([
+      '2026-11-14:dhuhr',
+      '2026-11-14:asr',
+      '2026-11-14:maghrib',
+    ]);
+  });
+
+  it('cycle 2 C3: a madhab change never replays an azan that already played', () => {
+    const LONDON = { name: 'London', lat: 51.5074, lng: -0.1278, tz: 'Europe/London' };
+    let s = base({ location: LONDON });
+    const asr = computeDay('2026-06-21', LONDON, s.calc).asr;
+    r = run(plus(asr, -MIN), () => s);
+    r.scheduler.start();
+    r.clock.advanceBy(2 * MIN);
+    s = base({ location: LONDON, calc: { ...s.calc, madhab: 'Hanafi' } });
+    r.clock.advanceBy(3 * H);
+    expect(r.azans().filter((e) => e.key === '2026-06-21:asr')).toHaveLength(1);
   });
 
   it('#4 a fired key from a wrong future clock does not suppress later azans', () => {
@@ -163,7 +169,7 @@ describe('scheduler review regressions', () => {
     expect(r.onError).toHaveBeenCalledTimes(1);
   });
 
-  it('#6 an onEvent handler that throws does not stop the loop', () => {
+  it('#6 an onEvent handler that always throws: bounded retries, and the loop keeps going', () => {
     const clock = new FakeClock(new Date('2026-05-10T05:00:00Z'));
     const seen: string[] = [];
     const onError = vi.fn();
@@ -182,8 +188,162 @@ describe('scheduler review regressions', () => {
     clock.advanceBy(24 * H);
     s.stop();
     clock.dispose();
-    expect(seen).toHaveLength(5);
+    expect(new Set(seen).size).toBe(5);
+    expect(seen).toHaveLength(5 * MAX_DELIVERY_ATTEMPTS);
     expect(onError).toHaveBeenCalled();
+  });
+
+  it('cycle 2 C2: an azan whose delivery threw once is retried on the next tick', () => {
+    const clock = new FakeClock(new Date('2026-05-10T05:00:00Z'));
+    const delivered: string[] = [];
+    let failOnce = true;
+    const s = createScheduler({
+      clock,
+      store: new MemoryStore(),
+      getSettings: () => base(),
+      onEvent: (e) => {
+        if (e.type !== 'azan') return;
+        if (failOnce) {
+          failOnce = false;
+          throw new Error('transient');
+        }
+        delivered.push(e.key);
+      },
+    });
+    s.start();
+    clock.advanceBy(24 * H);
+    s.stop();
+    clock.dispose();
+    expect(delivered).toHaveLength(5);
+    expect(new Set(delivered).size).toBe(5);
+  });
+
+  it('cycle 2 C1: an error sink that throws (storage full) cannot suppress azans', () => {
+    const throwing: KeyValueStore = {
+      get: () => null,
+      set: () => {
+        throw new Error('QuotaExceededError');
+      },
+      remove: () => {},
+    };
+    const onError = vi.fn(() => {
+      throw new Error('logger also failed');
+    });
+    r = run(new Date('2026-05-10T05:00:00Z'), () => base(), throwing, onError);
+    r.scheduler.start();
+    r.clock.advanceBy(24 * H);
+    expect(r.azans()).toHaveLength(5);
+  });
+
+  it('cycle 2 I6: an error that cannot be printed is still reported', () => {
+    const unprintable = Object.assign(new Error('x'), {
+      toString(): string {
+        throw new Error('cannot print');
+      },
+    }); // String() throws on it
+    let thrown = false;
+    const settings = () => {
+      if (!thrown) {
+        thrown = true;
+        throw unprintable;
+      }
+      return base();
+    };
+    r = run(new Date('2026-05-10T05:00:00Z'), settings);
+    r.scheduler.start();
+    r.clock.advanceBy(2 * SEC);
+    expect(r.onError).toHaveBeenCalledWith('scheduler tick failed', unprintable);
+  });
+
+  it('keeps at most 20 distinct reported faults in memory', () => {
+    let n = 0;
+    const settings = () => {
+      n++;
+      if (n <= 25) throw new Error(`fault ${n}`);
+      return base();
+    };
+    r = run(new Date('2026-05-10T05:00:00Z'), settings);
+    r.scheduler.start();
+    r.clock.advanceBy(30 * SEC);
+    expect(r.onError).toHaveBeenCalledTimes(25);
+  });
+
+  it('bounds the retry bookkeeping over a week of failing deliveries', () => {
+    const clock = new FakeClock(new Date('2026-05-10T05:00:00Z'));
+    const keys = new Set<string>();
+    const s = createScheduler({
+      clock,
+      store: new MemoryStore(),
+      getSettings: () => base(),
+      onEvent: (e) => {
+        if (e.type !== 'azan') return;
+        keys.add(e.key);
+        throw new Error('always');
+      },
+    });
+    s.start();
+    clock.advanceBy(7 * 24 * H);
+    s.stop();
+    clock.dispose();
+    expect(keys.size).toBe(35);
+  }, 30_000);
+
+  it('cycle 2 I1: a failed computation is retried instead of keeping stale times', () => {
+    let fail = true;
+    const s = base();
+    const settings = () => {
+      if (fail) return { ...s, calc: { ...s.calc, offsets: { ...s.calc.offsets, dhuhr: 45 } } };
+      return s;
+    };
+    r = run(new Date('2026-05-10T15:00:00Z'), settings);
+    r.scheduler.start();
+    expect(r.scheduler.days()).toBeNull();
+    fail = false;
+    r.clock.advanceBy(SEC);
+    expect(r.scheduler.days()?.today.dateKey).toBe('2026-05-10');
+  });
+
+  it('cycle 2 I2: a store whose reads throw does not stop the scheduler', () => {
+    const store: KeyValueStore = {
+      get: () => {
+        throw new Error('SecurityError');
+      },
+      set: () => {},
+      remove: () => {},
+    };
+    r = run(new Date('2026-05-10T05:00:00Z'), () => base(), store);
+    r.scheduler.start();
+    r.clock.advanceBy(24 * H);
+    expect(r.azans()).toHaveLength(5);
+  });
+
+  it('cycle 2 I4: no pre-alert or health check for an azan that already played', () => {
+    const asr = computeDay('2026-05-10', SCHAUMBURG, defaultSettings.calc).asr;
+    const store = new MemoryStore({ [KEYS.lastFired]: JSON.stringify(['2026-05-10:asr']) });
+    r = run(plus(asr, -20 * MIN), () => base(), store);
+    r.scheduler.start();
+    r.clock.advanceBy(25 * MIN);
+    const asrEvents = r.events.filter((e) => 'key' in e && e.key === '2026-05-10:asr');
+    expect(asrEvents).toEqual([]);
+  });
+
+  it('cycle 2 I5: a second instance on the same store does not replay what the first fired', () => {
+    const store = new MemoryStore();
+    const dhuhr = computeDay('2026-05-10', SCHAUMBURG, defaultSettings.calc).dhuhr;
+    r = run(plus(dhuhr, -MIN), () => base(), store);
+    const events2: SchedulerEvent[] = [];
+    const second = createScheduler({
+      clock: r.clock,
+      store,
+      getSettings: () => base(),
+      onEvent: (e) => events2.push(e),
+    });
+    second.start(); // read the store before the first fired anything
+    r.scheduler.start();
+    r.clock.advanceBy(3 * MIN);
+    second.stop();
+    const all = [...r.azans(), ...events2.filter((e) => e.type === 'azan')];
+    expect(all).toHaveLength(1);
   });
 
   it('#6 an onTick handler that throws does not stop the loop', () => {

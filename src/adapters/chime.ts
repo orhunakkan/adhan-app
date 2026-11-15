@@ -26,6 +26,8 @@ export function createWebAudioChime(win: ChimeWindow): ChimePort {
     play() {
       const c = ctx;
       if (!c) return Promise.resolve();
+      // After Siri or a call Safari can leave the context suspended/interrupted.
+      void c.resume();
       const notes = [659.25, 523.25]; // E5 → C5
       const start = c.currentTime + 0.05;
       notes.forEach((freq, i) => {

@@ -52,7 +52,11 @@ export function createLogger(store: KeyValueStore, clock: Clock): Logger {
     if (data !== undefined) entry.data = serialisable(data);
     buffer.push(entry);
     if (buffer.length > LOG_CAPACITY) buffer.splice(0, buffer.length - LOG_CAPACITY);
-    store.set(KEYS.log, JSON.stringify(buffer));
+    try {
+      store.set(KEYS.log, JSON.stringify(buffer));
+    } catch {
+      // Logging must never throw into its caller (storage full or blocked).
+    }
   };
   return {
     info: (msg, data) => write('info', msg, data),

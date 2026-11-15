@@ -1,11 +1,15 @@
 // Azan scheduler (brief §6). A pure decision function plus a 1-second tick
 // loop on the injected Clock. Never long timeouts: iOS throttles and drifts them.
 //
-// Idempotency uses the SET of recently fired azans (key + instant), with
+// Idempotency uses the SET of recently fired keys ("YYYY-MM-DD:prayer"), with
 // instants (not key order) deciding what is due. Key order is not time order at
 // high latitude: adhan can put Isha(D) after Fajr(D+1) in summer, or Asr before
-// Dhuhr inside the polar circle. The instant tells a moved location's prayer
-// (hours apart, same key) from an offset tweak of the same prayer (minutes).
+// Dhuhr inside the polar circle. A key fires at most once, whatever settings or
+// location change in between.
+//
+// Known limitation: deep inside the polar circle (e.g. Utqiagvik, 71°N, polar
+// night) adhan's polar resolution can return times days away from their date;
+// those fall outside the three-day window and do not fire.
 import type { Settings } from '../config/schema';
 import type { ThreeDays } from './period';
 import type { Clock, KeyValueStore, TimerHandle } from './ports';
@@ -17,8 +21,8 @@ export const TICK_MS = 1000;
 export const HEALTH_CHECK_LEAD_MS = 3 * 60_000;
 /** Fired azans kept (about six days): far more than any late window needs. */
 export const FIRED_HISTORY = 32;
-/** Same key within this distance = the same azan (offsets are at most ±30 min). */
-export const SAME_AZAN_MS = 60 * 60_000;
+/** Deliveries retried per azan when the consumer throws (within the late window). */
+export const MAX_DELIVERY_ATTEMPTS = 3;
 
 /** A fired azan is remembered as "YYYY-MM-DD:prayer" (the prayer's own calendar date). */
 export type FiredKey = string;
@@ -38,35 +42,30 @@ export function parseFiredKey(key: string | null): { dateKey: string; prayer: Az
 
 export interface FiredEntry {
   key: FiredKey;
-  /** Epoch ms of the prayer time that fired; NaN when unknown (legacy entries). */
-  at: number;
+  /** Epoch ms of the prayer time that fired (for the debug panel); null when unknown. */
+  at: number | null;
 }
 
 /** Reads the fired list; accepts legacy plain keys; anything malformed is dropped. */
 export function parseFiredList(raw: string | null): FiredEntry[] {
   if (raw === null) return [];
-  if (parseFiredKey(raw)) return [{ key: raw, at: Number.NaN }];
+  if (parseFiredKey(raw)) return [{ key: raw, at: null }];
   try {
     const list: unknown = JSON.parse(raw);
     if (!Array.isArray(list)) return [];
     return list.flatMap((v: unknown): FiredEntry[] => {
-      if (typeof v === 'string') return KEY_RE.test(v) ? [{ key: v, at: Number.NaN }] : [];
+      if (typeof v === 'string') return KEY_RE.test(v) ? [{ key: v, at: null }] : [];
       const e = v as { key?: unknown; at?: unknown } | null;
-      return e && typeof e.key === 'string' && KEY_RE.test(e.key) && typeof e.at === 'number'
-        ? [{ key: e.key, at: e.at }]
-        : [];
+      if (!e || typeof e.key !== 'string' || !KEY_RE.test(e.key)) return [];
+      return [{ key: e.key, at: typeof e.at === 'number' ? e.at : null }];
     });
   } catch {
     return [];
   }
 }
 
-function alreadyFired(fired: readonly FiredEntry[], e: DuePrayer): boolean {
-  return fired.some(
-    (f) =>
-      f.key === e.key && (Number.isNaN(f.at) || Math.abs(f.at - e.at.getTime()) <= SAME_AZAN_MS),
-  );
-}
+const alreadyFired = (fired: readonly FiredEntry[], key: FiredKey) =>
+  fired.some((f) => f.key === key);
 
 /** Azan events of the three days, sorted by instant; NaN times (polar extremes) are dropped. */
 function azanEvents(days: ThreeDays): DuePrayer[] {
@@ -97,7 +96,7 @@ export function getDuePrayer(input: {
       late >= 0 &&
       late <= input.lateWindowMs &&
       input.enabled[e.prayer] &&
-      !alreadyFired(input.fired, e)
+      !alreadyFired(input.fired, e.key)
     ) {
       return e;
     }
@@ -152,30 +151,75 @@ export function createScheduler(deps: {
   let handle: TimerHandle | null = null;
   let days: ThreeDays | null = null;
   let signature: string | null = null;
-  let lastError: string | null = null;
-  // In memory as well as persisted: a store that can't write must not cause repeats.
-  let fired = parseFiredList(store.get(KEYS.lastFired));
+  const reported = new Set<string>();
   const alerted = new Set<FiredKey>();
   const checked = new Set<FiredKey>();
+  const deliveries = new Map<FiredKey, number>();
 
-  const report = (message: string, error: unknown) => {
-    const text = `${message}: ${String(error)}`;
-    if (text === lastError) return;
-    lastError = text;
-    deps.onError?.(message, error);
+  const describe = (error: unknown) => {
+    try {
+      return String(error);
+    } catch {
+      return '[unprintable error]';
+    }
   };
 
-  const emit = (e: SchedulerEvent) => {
+  /** Each distinct fault is reported once; the callback can never throw into the loop. */
+  const report = (message: string, error: unknown) => {
+    const text = `${message}: ${describe(error)}`;
+    if (reported.has(text)) return;
+    if (reported.size >= 20) reported.clear();
+    reported.add(text);
+    try {
+      deps.onError?.(message, error);
+    } catch {
+      // The error sink itself failed (e.g. storage full); nothing more to do.
+    }
+  };
+
+  const readStoredFired = (): FiredEntry[] => {
+    try {
+      return parseFiredList(store.get(KEYS.lastFired));
+    } catch (err) {
+      report('could not read fired azans', err);
+      return [];
+    }
+  };
+
+  // In memory as well as persisted: a store that can't write must not cause repeats.
+  let fired = readStoredFired();
+
+  /** Merges what another instance (tab) may have written, so neither replays it. */
+  const syncFired = () => {
+    const stored = readStoredFired();
+    if (stored.some((e) => !alreadyFired(fired, e.key))) {
+      fired = [...fired, ...stored.filter((e) => !alreadyFired(fired, e.key))].slice(
+        -FIRED_HISTORY,
+      );
+    }
+  };
+
+  const persistFired = () => {
+    try {
+      store.set(KEYS.lastFired, JSON.stringify(fired));
+    } catch (err) {
+      report('could not persist fired azans', err);
+    }
+  };
+
+  const emit = (e: SchedulerEvent): boolean => {
     try {
       deps.onEvent(e);
+      return true;
     } catch (err) {
       report(`onEvent(${e.type}) threw`, err);
+      return false;
     }
   };
 
   const recompute = (now: Date, s: Settings) => {
-    signature = timesSignature(s);
     if (!s.location) {
+      signature = timesSignature(s);
       if (days !== null) {
         days = null;
         emit({ type: 'day', days: null, firedAt: now });
@@ -183,21 +227,25 @@ export function createScheduler(deps: {
       return;
     }
     const today = dateKeyInZone(now, s.location.tz);
-    days = {
+    const next: ThreeDays = {
       yesterday: computeDay(addDays(today, -1), s.location, s.calc),
       today: computeDay(today, s.location, s.calc),
       tomorrow: computeDay(addDays(today, 1), s.location, s.calc),
     };
+    // Only after a successful computation: a failure is retried on the next tick.
+    days = next;
+    signature = timesSignature(s);
     emit({ type: 'day', days, firedAt: now });
   };
 
   const markFired = (e: DuePrayer) => {
     fired = [...fired, { key: e.key, at: e.at.getTime() }].slice(-FIRED_HISTORY);
-    try {
-      store.set(KEYS.lastFired, JSON.stringify(fired));
-    } catch (err) {
-      report('could not persist fired azans', err);
-    }
+    persistFired();
+  };
+
+  const unmarkFired = (key: FiredKey) => {
+    fired = fired.filter((f) => f.key !== key);
+    persistFired();
   };
 
   const emitLead = (
@@ -207,7 +255,7 @@ export function createScheduler(deps: {
     now: Date,
   ) => {
     for (const up of upcoming) {
-      if (seen.has(up.key)) continue;
+      if (seen.has(up.key) || alreadyFired(fired, up.key)) continue;
       seen.add(up.key);
       if (seen.size > FIRED_HISTORY) seen.delete(seen.values().next().value!);
       emit({ type, firedAt: now, ...up });
@@ -229,6 +277,7 @@ export function createScheduler(deps: {
     }
     const current = days!;
     const enabled = s.azan.enabled;
+    syncFired();
     const due = getDuePrayer({
       now,
       days: current,
@@ -239,7 +288,13 @@ export function createScheduler(deps: {
     if (due) {
       // Record before notifying: a crash or reload mid-azan must not replay it.
       markFired(due);
-      emit({ type: 'azan', firedAt: now, ...due });
+      if (!emit({ type: 'azan', firedAt: now, ...due })) {
+        // The consumer threw: un-record so a later tick in the window retries (bounded).
+        const tries = (deliveries.get(due.key) ?? 0) + 1;
+        deliveries.set(due.key, tries);
+        if (tries < MAX_DELIVERY_ATTEMPTS) unmarkFired(due.key);
+      }
+      if (deliveries.size > FIRED_HISTORY) deliveries.clear();
     }
     if (s.azan.preAlertMin > 0) {
       const leadMs = s.azan.preAlertMin * 60_000;
