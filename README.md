@@ -51,10 +51,18 @@ If no file can play for a prayer, a soft chime plays instead and Settings shows 
 
 ## Deploy (Cloudflare Pages, free plan)
 
-Use **one** method per project; don't mix them.
+**Live:** <https://adhan-app-90j.pages.dev> — the Pages project `adhan-app`, set up for direct upload. Deploy from an up-to-date `main` with nothing extra in `public/audio/`:
+
+```sh
+npm run build && npm run test:build && npx wrangler pages deploy dist --project-name adhan-app --branch main
+```
+
+Merging to `main` does not deploy by itself. Roll back from Cloudflare dashboard → Workers & Pages → `adhan-app` → Deployments.
+
+Use **one** method per project; don't mix them. A direct-upload project can't be switched to Git integration later, so moving to Git integration means creating a new project.
 
 - **Git integration (recommended):** Cloudflare dashboard → Workers & Pages → Create → Pages → connect this GitHub repo. Build command `npm run build`, output `dist`, production branch `main`, Node LTS. Turn off or limit preview builds (500 builds/month on the free plan). No secrets are needed.
-- **Direct upload (for a build that includes your own audio; see the warning above):** `npm run build && npx wrangler pages deploy dist` (run `npx wrangler login` once).
+- **Direct upload (for a build that includes your own audio; see the warning above):** `npm run build && npx wrangler pages deploy dist` (run `npx wrangler login` once). Recent wrangler versions send Pages commands to Workers; `wrangler pages project create` needs `--force` once to create a Pages project.
 
 `public/_headers` sets long caching for hashed assets and fonts, `no-cache` for the HTML, service worker and manifest, and a strict Content-Security-Policy.
 
@@ -78,6 +86,7 @@ If the azan ever cannot play (after a reboot, or iOS revoked audio), the screen 
 - [ ] The Start tap unlocks audio; **Test** plays for every prayer.
 - [ ] 24-hour soak: all 5 azans fire on time; the reload count in *Tanılama* does not increase.
 - [ ] Wi-Fi off for a full day: azans still fire; fonts and panels render.
+- [ ] The first launch from the Home Screen: one tap on **Start** unlocks audio, with no "Tap to enable azan" afterwards, and **Test** plays. Cloudflare Pages ignores Range requests, so this relies on the service worker taking control during the first launch.
 - [ ] Reboot the iPad: the Start overlay appears; one tap and the next azan works.
 - [ ] Trigger Siri during an azan: the Resume button appears and works.
 - [ ] Airplane mode, then wait for the 3-minute health check before a prayer: no warning appears, and the azan plays from the offline cache (bundled files and uploads).

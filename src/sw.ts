@@ -1,7 +1,7 @@
 // Service worker (brief §11), built by vite-plugin-pwa (injectManifest) as a
 // classic script: Safari 15 has no module service workers.
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
-import { cacheNames } from 'workbox-core';
+import { cacheNames, clientsClaim } from 'workbox-core';
 import {
   cleanupOutdatedCaches,
   createHandlerBoundToURL,
@@ -21,6 +21,14 @@ declare const self: {
   skipWaiting(): Promise<void>;
   addEventListener(type: 'message', fn: (e: { data?: { type?: string } }) => void): void;
 };
+
+// Take control of the open page as soon as this worker first activates. On iOS
+// the Home Screen app has its own storage, so its first launch is not yet
+// controlled; without this, the Start tap's silent clip (and any bundled azan)
+// would come from Cloudflare Pages, which ignores Range requests (200, not 206).
+// Safe with the update gate: this worker only activates on an update after
+// SKIP_WAITING, and the page reloads only from applyUpdate(), never on a claim.
+clientsClaim();
 
 // Safari's media stack asks for audio with Range headers; a full 200 body can
 // be refused, which would make every health check fail offline. Serve audio

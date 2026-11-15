@@ -40,4 +40,19 @@ describe('createServiceWorker', () => {
     listeners.get('controlling')!();
     expect(reload).toHaveBeenCalled();
   });
+
+  it('never reloads when a worker takes control by itself (first-install clientsClaim)', () => {
+    listeners.clear();
+    const reload = vi.fn();
+    const sw = createServiceWorker(
+      { serviceWorker: {} } as unknown as Navigator,
+      { reload } as unknown as Location,
+    )!;
+    sw.register(() => {});
+    // The reload handler exists only after the user's gated Apply tap.
+    expect(listeners.has('controlling')).toBe(false);
+    sw.checkForUpdate();
+    expect(listeners.has('controlling')).toBe(false);
+    expect(reload).not.toHaveBeenCalled();
+  });
 });
