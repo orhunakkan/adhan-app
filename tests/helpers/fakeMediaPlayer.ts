@@ -5,7 +5,8 @@ export class FakeMediaPlayer implements MediaPlayer {
   readonly calls: string[] = [];
   src = '';
   currentTime = 0;
-  duration = Number.NaN;
+  /** A loaded file has a finite duration; set NaN to simulate an unknown length. */
+  duration = 180;
   paused = true;
   private nextPlayError: string | null = null;
   private held: { resolve: () => void; reject: (name: string) => void } | null = null;

@@ -13,7 +13,11 @@ import type { AzanPrayer } from './prayerTimes';
 
 export const SILENCE_URL = '/audio/silence.m4a';
 /** play() that has not settled by then counts as failed (stalled load, hung SW). */
-export const PLAY_TIMEOUT_MS = 6000;
+export const PLAY_TIMEOUT_MS = 4000;
+/** An IndexedDB read of an uploaded file that takes longer is treated as unavailable. */
+export const BLOB_TIMEOUT_MS = 2000;
+/** A pause with no `ended` within this delay is an interruption (duration unknown). */
+export const INTERRUPT_CONFIRM_MS = 250;
 
 export type AudioStatus = 'locked' | 'ready' | 'playing' | 'interrupted' | 'blocked';
 export type AudioPhase = 'azan' | 'dua' | 'test';
@@ -48,6 +52,8 @@ interface Attempt {
   url: string | null;
   /** play() resolved for the current source: element events now belong to it. */
   started: boolean;
+  /** A source loop (next) or a resume is running for this attempt. */
+  busy: boolean;
 }
 
 type PlayResult = 'ok' | 'notAllowed' | 'abort' | 'failed';
@@ -74,7 +80,11 @@ export function createAudioController(deps: {
 
   const set = (patch: Partial<AudioState>) => {
     state = { ...state, ...patch };
-    deps.onChange(state);
+    try {
+      deps.onChange(state);
+    } catch (e) {
+      deps.log.error('audio onChange listener threw', String(e));
+    }
   };
 
   const markMissing = (source: string) => {
@@ -93,7 +103,8 @@ export function createAudioController(deps: {
     if (attempt !== a) return;
     revoke(a.url);
     a.url = null;
-    attempt = null;
+    attempt = null; // before pausing, so our pause is not an interruption
+    player?.pause();
     const keep = state.status === 'blocked' || state.status === 'locked';
     set({ status: status ?? (keep ? state.status : 'ready'), phase: null, prayer: null });
   };
@@ -103,7 +114,7 @@ export function createAudioController(deps: {
     const bundled = bundledUrl(source);
     if (bundled) return bundled;
     try {
-      const blob = await deps.blobs.get(source.slice('user:'.length));
+      const blob = await withTimeout(deps.blobs.get(source.slice('user:'.length)), BLOB_TIMEOUT_MS);
       return blob ? deps.objectUrls.create(blob) : null;
     } catch (e) {
       deps.log.warn('could not read uploaded audio', { source, error: String(e) });
@@ -111,7 +122,23 @@ export function createAudioController(deps: {
     }
   };
 
-  const playWithTimeout = (p: MediaPlayer): Promise<PlayResult> =>
+  const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
+    new Promise((resolve, reject) => {
+      const timer = deps.clock.setTimeout(() => reject(new Error(`timed out after ${ms} ms`)), ms);
+      promise.then(
+        (v) => {
+          deps.clock.clearTimeout(timer);
+          resolve(v);
+        },
+        (e: unknown) => {
+          deps.clock.clearTimeout(timer);
+          reject(e instanceof Error ? e : new Error(String(e)));
+        },
+      );
+    });
+
+  /** play() with a watchdog; the timeout only pauses the element if this play is still current. */
+  const playWithTimeout = (p: MediaPlayer, isCurrent: () => boolean): Promise<PlayResult> =>
     new Promise((resolve) => {
       let settled = false;
       const done = (r: PlayResult) => {
@@ -121,7 +148,7 @@ export function createAudioController(deps: {
         resolve(r);
       };
       const timer = deps.clock.setTimeout(() => {
-        p.pause(); // a late resolve must not start audio we gave up on
+        if (isCurrent()) p.pause(); // a late resolve must not start audio we gave up on
         done('failed');
       }, PLAY_TIMEOUT_MS);
       p.play().then(
@@ -137,6 +164,16 @@ export function createAudioController(deps: {
 
   /** Tries the attempt's remaining sources; the chime is the last resort for azan/test. */
   const next = async (a: Attempt): Promise<void> => {
+    if (a.busy) return; // one loop per attempt (e.g. a double Resume tap)
+    a.busy = true;
+    try {
+      await loop(a);
+    } finally {
+      a.busy = false;
+    }
+  };
+
+  const loop = async (a: Attempt): Promise<void> => {
     const p = player!;
     while (a.queue.length) {
       const source = a.queue.shift()!;
@@ -156,7 +193,7 @@ export function createAudioController(deps: {
       a.url = url;
       a.started = false;
       p.setSrc(url);
-      const result = await playWithTimeout(p);
+      const result = await playWithTimeout(p, () => attempt === a);
       if (attempt !== a) return;
       if (result === 'ok') {
         a.started = true;
@@ -191,7 +228,11 @@ export function createAudioController(deps: {
     a.url = null;
     a.source = null;
     set({ status: 'playing' });
-    await deps.chime.play();
+    try {
+      await deps.chime.play();
+    } catch (e) {
+      deps.log.error('chime failed', String(e));
+    }
     finish(a);
   };
 
@@ -204,6 +245,7 @@ export function createAudioController(deps: {
       source: null,
       url: null,
       started: false,
+      busy: false,
     };
     attempt = a;
     silenceToken = null;
@@ -233,11 +275,22 @@ export function createAudioController(deps: {
   const onPause = () => {
     const a = attempt;
     if (!a?.started || !player || state.status !== 'playing') return;
+    const interrupted = () => {
+      deps.log.warn('playback interrupted', { phase: a.phase });
+      set({ status: 'interrupted' });
+    };
     const { currentTime, duration } = player;
-    // A real element fires `pause` right before `ended` at the natural end.
-    if (Number.isFinite(duration) && currentTime >= duration - 0.5) return;
-    deps.log.warn('playback interrupted', { phase: a.phase });
-    set({ status: 'interrupted' });
+    if (!Number.isFinite(duration)) {
+      // Unknown length: a real element fires `pause` right before `ended` at
+      // the natural end, so only call it an interruption if `ended` doesn't follow.
+      deps.clock.setTimeout(() => {
+        if (attempt === a && a.started && state.status === 'playing' && player?.paused)
+          interrupted();
+      }, INTERRUPT_CONFIRM_MS);
+      return;
+    }
+    if (currentTime >= duration - 0.5) return; // the natural end
+    interrupted();
   };
 
   const onPlaying = () => {
@@ -267,21 +320,26 @@ export function createAudioController(deps: {
     return p;
   };
 
-  const playSilence = async (): Promise<boolean> => {
+  /**
+   * Plays the silent clip. Inside the Start tap (`unlocking`) the gesture itself
+   * is what unlocks iOS, so only NotAllowedError means failure; a health check
+   * treats any error as a lost unlock (contract: loud rather than silent).
+   */
+  const playSilence = async (unlocking: boolean): Promise<boolean> => {
     const p = player!;
     const token = {};
     silenceToken = token;
     p.setSrc(SILENCE_URL);
-    const result = await playWithTimeout(p);
+    const result = await playWithTimeout(p, () => silenceToken === token && !attempt);
     // Superseded by an azan (or a newer check): no evidence either way.
     if (silenceToken !== token || attempt) return true;
-    if (result === 'ok') {
+    if (result === 'ok' || (unlocking && result !== 'notAllowed')) {
+      if (result !== 'ok') deps.log.error('silent clip did not play during unlock', { result });
       set({ status: 'ready', phase: null, prayer: null });
       return true;
     }
-    if (result === 'abort') return true;
     deps.log.warn('silent clip rejected', { result });
-    set({ status: 'blocked' });
+    set({ status: 'blocked', phase: null, prayer: null });
     return false;
   };
 
@@ -289,9 +347,11 @@ export function createAudioController(deps: {
     async unlock() {
       ensurePlayer();
       deps.chime.unlock();
-      // A tap during a starting or playing azan must not replace it.
-      if (attempt) return true;
-      return playSilence();
+      // A tap must not cut off audio that is actually playing; anything else
+      // (starting, interrupted, a test) gives way so the gesture re-unlocks.
+      if (attempt && state.status === 'playing') return true;
+      if (attempt) halt(attempt);
+      return playSilence(true);
     },
     async playAzan(prayer) {
       if (!player) {
@@ -313,15 +373,19 @@ export function createAudioController(deps: {
       const a = attempt;
       if (!a || state.status !== 'interrupted' || !player) return;
       if (!a.started) {
-        // Aborted while loading: start the same source again.
+        // Aborted while loading: start the same source again (next() allows one loop).
         await next(a);
         return;
       }
-      const result = await playWithTimeout(player);
+      if (a.busy) return; // a second Resume tap while the first is settling
+      a.busy = true;
+      const result = await playWithTimeout(player, () => attempt === a);
+      a.busy = false;
       if (attempt !== a) return;
       if (result === 'ok') set({ status: 'playing' });
       else if (result === 'notAllowed') finish(a, 'blocked');
-      else if (result === 'failed') {
+      else if (result === 'abort') deps.log.warn('resume aborted');
+      else {
         markMissing(a.source!);
         a.started = false;
         await next(a);
@@ -329,8 +393,10 @@ export function createAudioController(deps: {
     },
     async healthCheck() {
       if (!player) return false;
-      if (attempt) return true; // never stomp on an azan that is starting, playing or interrupted
-      return playSilence();
+      // Never stomp on an azan or dua; a settings test gives way to the check.
+      if (attempt && attempt.phase !== 'test') return true;
+      if (attempt) halt(attempt);
+      return playSilence(false);
     },
     position() {
       if (!player) return { current: 0, duration: 0 };
