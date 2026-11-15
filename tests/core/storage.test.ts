@@ -64,6 +64,31 @@ describe('loadSettings / saveSettings', () => {
     expect(onError).toHaveBeenCalledWith(expect.stringMatching(/invalid/i), expect.anything());
   });
 
+  it('keeps the valid sections (location, offsets, PIN) and resets only the broken one', () => {
+    const onError = vi.fn();
+    const location = { name: 'Test', lat: 41.01, lng: 28.97, tz: 'Europe/Istanbul' };
+    const calc = { ...defaultSettings.calc, method: 'MuslimWorldLeague' as const };
+    const bad = {
+      ...defaultSettings,
+      location,
+      calc: { ...calc, offsets: { ...calc.offsets, asr: 2 } },
+      pin: '4821',
+      display: { ...defaultSettings.display, theme: 'neon' },
+    };
+    const store = new MemoryStore({ [KEYS.settings]: JSON.stringify(bad) });
+    const s = loadSettings(store, onError);
+    expect(s.location).toEqual(location);
+    expect(s.calc.method).toBe('MuslimWorldLeague');
+    expect(s.calc.offsets.asr).toBe(2);
+    expect(s.pin).toBe('4821');
+    expect(s.display).toEqual(defaultSettings.display);
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledWith(
+      'Invalid settings; reset display to defaults',
+      expect.anything(),
+    );
+  });
+
   it('falls back to defaults for a settingsVersion from the future', () => {
     const onError = vi.fn();
     const store = new MemoryStore({ [KEYS.settings]: JSON.stringify({ settingsVersion: 99 }) });

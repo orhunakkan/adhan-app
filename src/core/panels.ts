@@ -1,6 +1,6 @@
 // Reflection panels (brief §9): validated content plus a pure screensaver
 // schedule. The shipped set is placeholders (Pickthall 1930, public domain).
-import { z } from 'zod';
+import { z } from '../config/zod';
 import type { ThreeDays } from './period';
 import { AZAN_PRAYERS } from './prayerTimes';
 import type { Rng } from './ports';

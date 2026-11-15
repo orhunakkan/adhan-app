@@ -84,7 +84,22 @@ export default tseslint.config(
       ...compat.configs['flat/recommended'].rules,
       'no-restricted-globals': ['error', ...RESTRICTED_GLOBALS, ...UNSUPPORTED_GLOBALS],
       'no-restricted-syntax': ['error', ...SIDE_EFFECTS, ...LOOKBEHIND],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'zod',
+              message: "Import z from 'src/config/zod' (it turns off zod's eval probe, see CSP).",
+            },
+          ],
+        },
+      ],
     },
+  },
+  {
+    files: ['src/config/zod.ts'],
+    rules: { 'no-restricted-imports': 'off' },
   },
   {
     files: ['src/main.ts', 'src/adapters/**/*.ts'],
