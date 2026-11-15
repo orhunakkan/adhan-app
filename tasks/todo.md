@@ -288,7 +288,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `tests/types/*.test-d.ts`, `tests/bench/*.bench.ts`
   - Deps: 31
 
-- [ ] **Task 36: Audio pipeline** (S) — §10
+- [x] **Task 36: Audio pipeline** (S) — §10
   - Acceptance: `scripts/normalize-audio.sh` (loudnorm, AAC 128k, trims silence, `--silence` generates the 0.5 s `silence.m4a`); `public/audio/silence.m4a` committed; audio budget + gitignore enforced by build tests
   - Verify: run the script on a generated test tone; build hygiene test passes
   - Files: `scripts/normalize-audio.sh`, `public/audio/silence.m4a`
