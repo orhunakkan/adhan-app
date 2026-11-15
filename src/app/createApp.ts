@@ -174,6 +174,7 @@ export function createApp(deps: AppDeps): App {
     blobs: deps.blobs,
     chime: deps.chime,
     objectUrls: deps.objectUrls,
+    clock: deps.clock,
     log,
     getSettings: () => store.get().settings,
     onChange: (a) => {
