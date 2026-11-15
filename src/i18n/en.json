@@ -104,5 +104,16 @@
   "photos.item": "Photo {n}",
   "update.available": "Update available",
   "update.apply": "Apply",
-  "update.blocked": "Prayer time is near; apply after {time}"
+  "update.blocked": "Prayer time is near; apply after {time}",
+  "debug.title": "Diagnostics",
+  "debug.sw": "Service worker",
+  "debug.wakeLock": "Wake lock",
+  "debug.audio": "Audio",
+  "debug.health": "Last health check",
+  "debug.lastFired": "Last azan",
+  "debug.reloads": "Reloads",
+  "debug.period": "Period / theme",
+  "debug.log": "Log",
+  "debug.none": "—",
+  "section.debug": "Diagnostics"
 }

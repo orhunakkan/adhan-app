@@ -3,7 +3,7 @@
 import { settingsSchema, type Settings } from '../config/schema';
 import { createAudioController, type AudioState } from '../core/audio';
 import { blobBytes } from '../core/blobUsage';
-import { createLogger, type Logger } from '../core/logger';
+import { createLogger, type LogEntry, type Logger } from '../core/logger';
 import { nightDimState, type NightDimState } from '../core/nightDim';
 import { periodAt, type PeriodInfo, type ThreeDays } from '../core/period';
 import type {
@@ -29,10 +29,11 @@ import { canApplyUpdate } from '../core/updateGate';
 import { createWakeLockManager, type WakeLockStatus } from '../core/wakeLock';
 import { applyTokens } from '../design/tokens';
 import { applyLocale, INTL_LOCALE, t } from '../i18n';
-import { loadSettings, saveSettings } from '../core/storage';
+import { KEYS, loadSettings, saveSettings } from '../core/storage';
 import { mountAzanView } from '../ui/azanView';
 import { mountBackground } from '../ui/background';
 import { mountClockView } from '../ui/clockView';
+import { debugSection } from '../ui/debugPanel';
 import { mountNextPrayerCard } from '../ui/nextPrayerCard';
 import { mountPreAlert } from '../ui/preAlert';
 import { mountKiosk } from '../ui/kiosk';
@@ -101,6 +102,15 @@ export interface AppState {
   reducedMotion: boolean;
   /** A new service worker is waiting (brief §11). */
   updateAvailable: boolean;
+  lastHealthCheck: { at: Date; ok: boolean } | null;
+}
+
+export interface DebugInfo {
+  version: string;
+  serviceWorker: 'unsupported' | 'registered' | 'update waiting';
+  lastFired: string | null;
+  reloads: number;
+  log: readonly LogEntry[];
 }
 
 export interface App {
@@ -116,6 +126,7 @@ export interface App {
   stopTest(): void;
   /** Applies a waiting service worker if the update gate allows it now. */
   applyUpdate(): void;
+  debug(): DebugInfo;
   testAudio(source: string): Promise<void>;
   log: Logger;
   dispose(): void;
@@ -140,6 +151,13 @@ function overlayFor(startRequired: boolean, audio: AudioState): OverlayKind {
 
 export function createApp(deps: AppDeps): App {
   const log = createLogger(deps.store, deps.clock);
+  /** Page loads since install: the leak signal on an iPad without Web Inspector (brief §14). */
+  const reloads = (() => {
+    const n = Number(deps.store.get(KEYS.reloads) ?? '0');
+    const next = (Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0) + 1;
+    deps.store.set(KEYS.reloads, String(next));
+    return next - 1;
+  })();
   const settings = loadSettings(deps.store, (msg, detail) => log.warn(msg, detail));
   const initialAudio: AudioState = { status: 'locked', phase: null, prayer: null, missing: [] };
   const store = createStore<AppState>(
@@ -158,6 +176,7 @@ export function createApp(deps: AppDeps): App {
       nightDim: { active: false, opacity: 0 },
       reducedMotion: false,
       updateAvailable: false,
+      lastHealthCheck: null,
     },
     // Views subscribe to this store; a throwing view is logged, never propagated.
     (e) => log.error('view listener threw', String(e)),
@@ -330,6 +349,7 @@ export function createApp(deps: AppDeps): App {
       store.update({ preAlert: { prayer: e.prayer, at: e.at } });
     } else if (e.type === 'healthCheck') {
       void audio.healthCheck().then((ok) => {
+        store.update({ lastHealthCheck: { at: deps.clock.now(), ok } });
         if (!ok) log.warn('health check failed', { before: e.key });
       });
     }
@@ -477,6 +497,17 @@ export function createApp(deps: AppDeps): App {
       // Offer it again once the message has been read.
       deps.clock.setTimeout(showUpdateToast, 10_000);
     },
+    debug: () => ({
+      version: __APP_VERSION__,
+      serviceWorker: !deps.serviceWorker
+        ? 'unsupported'
+        : store.get().updateAvailable
+          ? 'update waiting'
+          : 'registered',
+      lastFired: scheduler.lastFired(),
+      reloads,
+      log: log.entries(),
+    }),
     stopTest() {
       if (audio.state().phase === 'test') audio.stop();
     },
@@ -508,6 +539,7 @@ export function createApp(deps: AppDeps): App {
       displaySection,
       photosSection,
       aboutSection,
+      debugSection,
     ],
     services: {
       geolocation: deps.geolocation,

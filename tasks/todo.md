@@ -276,7 +276,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/core/swUpdate.ts`, `src/adapters/sw.ts`, `tests/dom/update.test.ts`
   - Deps: 9, 17, 32
 
-- [ ] **Task 34: Debug panel** (S) — §14, observability
+- [x] **Task 34: Debug panel** (S) — §14, observability
   - Acceptance: hidden screen from About showing version, SW status, wake-lock state, audio unlock, last health check, `lastFired`, reload count since install, storage used, period/theme, last 100 log lines
   - Verify: `tests/dom/debugPanel.test.ts`
   - Files: `src/ui/debugPanel.ts`, `src/app/createApp.ts`, `tests/dom/debugPanel.test.ts`

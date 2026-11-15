@@ -477,3 +477,24 @@
     text-align: start;
   }
 }
+
+@layer components {
+  .debug__value {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-2);
+    text-align: end;
+    overflow-wrap: anywhere;
+  }
+
+  .debug__log {
+    max-block-size: 40vh;
+    padding: var(--space-4);
+    margin: 0;
+    overflow: auto;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    user-select: text;
+  }
+}
