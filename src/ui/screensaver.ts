@@ -64,7 +64,10 @@ export function mountScreensaver(
     const mode = s.settings.display.screensaverMode;
     const wantsPhoto = mode === 'photos' || (mode === 'alternate' && index % 2 === 1);
     const photo = wantsPhoto ? (deps.photoSlide?.() ?? null) : null;
-    if (photo) return photo;
+    if (photo) {
+      toggleClass(photo, 'photo--kenburns', !s.reducedMotion);
+      return photo;
+    }
     const panels = deps.panels();
     return panels.length ? renderPanel(panels[index % panels.length]!) : null;
   };

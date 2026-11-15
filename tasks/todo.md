@@ -235,7 +235,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/core/photos.ts`, `src/ui/slideshow.ts`, `src/ui/settings/photos.ts`, `tests/dom/slideshow.test.ts`, `tests/dom/photoResize.test.ts`
   - Deps: 28, 29
 
-- [ ] **Task 31: Burn-in shift, night dim overlay, reduced motion** (S) — §9, §8.9
+- [x] **Task 31: Burn-in shift, night dim overlay, reduced motion** (S) — §9, §8.9
   - Acceptance: layout transform from `burnInOffset` every 10 min; dim overlay at 01:00, removed at Fajr − 1 min and during azan; `prefers-reduced-motion` → `reduced-motion` class, no Ken Burns/breathing classes
   - Verify: `tests/dom/kiosk.test.ts`
   - Files: `src/ui/kiosk.ts`, `src/app/createApp.ts`, `tests/dom/kiosk.test.ts`

@@ -539,7 +539,7 @@
     transform: scale(1);
   }
 
-  .slide--in .photo__img {
+  .slide--in.photo--kenburns .photo__img {
     animation: ken-burns 60s linear forwards;
   }
 
@@ -572,5 +572,22 @@
     to {
       transform: scale(1.06);
     }
+  }
+}
+
+@layer views {
+  /* Night dim (brief §9): above everything except overlays and settings. */
+  .night-dim {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    pointer-events: none;
+    background: #000;
+    opacity: 0;
+    transition: opacity 2s var(--ease-out);
+  }
+
+  .layout {
+    transition: transform var(--dur-slow) var(--ease-out);
   }
 }
