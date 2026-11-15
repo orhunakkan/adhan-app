@@ -124,7 +124,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/ui/startOverlay.ts`, `src/app/createApp.ts`, `tests/dom/overlays.test.ts`
   - Deps: 15
 
-- [ ] **Task 17: Wake lock (progressive) + toast** (S) — §7b, §8.7
+- [x] **Task 17: Wake lock (progressive) + toast** (S) — §7b, §8.7
   - Acceptance: unsupported path (primary): no throw, the one-time Auto-Lock hint shows once and never after a reload; supported: requested after Start, re-requested on visible; rejected → hint; toast pill auto-dismisses and supports an action button
   - Verify: `tests/dom/wakeLock.test.ts`, `tests/dom/toast.test.ts`
   - Files: `src/core/wakeLock.ts`, `src/ui/toast.ts`, `tests/dom/wakeLock.test.ts`, `tests/dom/toast.test.ts`
