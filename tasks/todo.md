@@ -88,7 +88,7 @@ The standard verification for every task (on top of its own checks) is: the new 
 
 ## Phase 3: Scheduler and audio (critical path; doubt-driven review on 13, 14, 15)
 
-- [ ] **Task 11: Settings schema, defaults, storage and migrations** (M) — §9 Settings, §13.3
+- [x] **Task 11: Settings schema, defaults, storage and migrations** (M) — §9 Settings, §13.3
   - Acceptance: zod `settingsSchema` (location nullable, calc, azan per prayer, display, photos, pin), `defaults.ts` (no location), `settingsVersion` + migrations from every past version fixture; `loadSettings`/`saveSettings` via KeyValueStore (corrupt JSON → defaults + log); BlobStore over idb-keyval for audio/photos
   - Verify: round-trip, corrupt, migration and invalid-value tests; `tests/types/settings.test-d.ts` asserts `Settings` equals `z.infer`
   - Files: `src/config/schema.ts`, `src/config/defaults.ts`, `src/core/storage.ts`, `tests/core/storage.test.ts`, `tests/types/settings.test-d.ts`

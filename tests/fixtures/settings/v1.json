@@ -1,0 +1,36 @@
+{
+  "settingsVersion": 1,
+  "location": { "name": "Schaumburg, IL", "lat": 42.0334, "lng": -88.0834, "tz": "America/Chicago" },
+  "calc": {
+    "method": "Turkey",
+    "madhab": "Hanafi",
+    "highLatitudeRule": "SeventhOfTheNight",
+    "offsets": { "fajr": 0, "sunrise": -2, "dhuhr": 1, "asr": 0, "maghrib": 2, "isha": 0 }
+  },
+  "azan": {
+    "enabled": { "fajr": true, "dhuhr": true, "asr": false, "maghrib": true, "isha": true },
+    "audio": {
+      "fajr": "bundled:saba-sabah",
+      "dhuhr": "user:abc123",
+      "asr": "bundled:rast",
+      "maghrib": "bundled:segah",
+      "isha": "bundled:hicaz"
+    },
+    "dua": { "enabled": true, "source": "bundled:dua" },
+    "lateWindowSec": 120,
+    "preAlertMin": 10
+  },
+  "display": {
+    "theme": "emerald",
+    "language": "tr",
+    "hour12": false,
+    "showSeconds": true,
+    "panelIntervalSec": 60,
+    "screensaverMode": "alternate",
+    "pattern": true,
+    "glass": false,
+    "nightDim": { "enabled": true, "afterIshaMin": 60, "beforeFajrMin": 30, "opacity": 0.7 }
+  },
+  "photos": ["p1", "p2"],
+  "pin": "4821"
+}
