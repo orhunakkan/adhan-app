@@ -198,8 +198,9 @@ export function createAudioController(deps: {
     async unlock() {
       ensurePlayer();
       deps.chime.unlock();
-      // A tap during a playing azan must not replace it with the silent clip.
-      if (state.status === 'playing') return true;
+      // A tap during a starting or playing azan must not replace it with the
+      // silent clip; a blocked one is re-unlocked so the app can replay it.
+      if (state.phase !== null && state.status !== 'blocked') return true;
       return playSilence();
     },
     async playAzan(prayer) {
@@ -234,7 +235,8 @@ export function createAudioController(deps: {
     },
     async healthCheck() {
       if (!player) return false;
-      if (state.status === 'playing' || state.status === 'interrupted') return true;
+      // Never stomp on an azan that is starting, playing or interrupted.
+      if (state.phase !== null) return true;
       return playSilence();
     },
     position() {

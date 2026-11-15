@@ -1,4 +1,5 @@
 // Bootstrap: the only module that creates real browser adapters (brief §3, §16).
+import { createWebAudioChime } from './adapters/chime';
 import { browserClock } from './adapters/clock';
 import { createIdbBlobStore } from './adapters/idbBlobStore';
 import { createLocalStore } from './adapters/localStore';
@@ -13,10 +14,16 @@ if (!root) throw new Error('#app root missing from index.html');
 createApp({
   root,
   doc: document,
+  win: window,
   clock: browserClock,
   store: createLocalStore(),
   blobs: createIdbBlobStore(),
   rng: mathRng,
   createPlayer: () => createAudioElementPlayer(document),
+  chime: createWebAudioChime(window),
+  objectUrls: {
+    create: (blob) => URL.createObjectURL(blob),
+    revoke: (url) => URL.revokeObjectURL(url),
+  },
   wakeLock: createBrowserWakeLock(navigator),
 });

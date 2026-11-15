@@ -1,0 +1,8 @@
+{
+  "app.name": "Azan Clock",
+  "start.tap": "Tap to start",
+  "start.hint": "Needed once after every restart so the azan can play",
+  "enable.tap": "Tap to enable azan",
+  "enable.hint": "Sound was blocked by the iPad",
+  "azan.resume": "Resume azan"
+}

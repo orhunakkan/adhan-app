@@ -82,7 +82,7 @@ describe('createApp (mountApp harness)', () => {
     m = mountApp({ start: new Date('2026-05-10T17:00:00Z') });
     const dhuhr = computeDay('2026-05-10', SCHAUMBURG, m.app.state().settings.calc).dhuhr;
     m.clock.advanceTo(new Date(dhuhr.getTime() + 1000));
-    m.app.endAzan();
+    m.app.stopAzan();
     expect(m.app.state().azan).toBeNull();
   });
 
@@ -105,6 +105,25 @@ describe('createApp (mountApp harness)', () => {
     m = mountApp({ store: new MemoryStore({ 'adhan.settings': '{oops' }) });
     expect(m.app.state().needsLocation).toBe(true);
     expect(m.app.log.entries().some((e) => e.level === 'warn' && /Corrupt/.test(e.msg))).toBe(true);
+  });
+
+  it('logs scheduler errors (e.g. lastFired cannot be persisted)', () => {
+    class FailingStore extends MemoryStore {
+      override set(key: string, value: string) {
+        if (key === 'adhan.lastFired') throw new Error('QuotaExceededError');
+        super.set(key, value);
+      }
+    }
+    const store = new FailingStore();
+    const first = mountApp({ start: new Date('2026-05-10T17:00:00Z') });
+    store.set('adhan.settings', first.store.get('adhan.settings')!);
+    first.dispose();
+    m = mountApp({ start: new Date('2026-05-10T17:00:00Z'), store });
+    const dhuhr = computeDay('2026-05-10', SCHAUMBURG, m.app.state().settings.calc).dhuhr;
+    m.clock.advanceTo(new Date(dhuhr.getTime() + 1000));
+    expect(m.app.log.entries().some((e) => e.level === 'error' && /persist/.test(e.msg))).toBe(
+      true,
+    );
   });
 
   it('logs startup to the ring buffer', () => {
