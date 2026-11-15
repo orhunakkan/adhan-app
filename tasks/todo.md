@@ -58,7 +58,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/core/prayerTimes.ts`, `tests/core/prayerTimes.test.ts`
   - Deps: 6
 
-- [ ] **Task 8: Time zones, DST, formatting and Hijri** (M) — §5, §13.3
+- [x] **Task 8: Time zones, DST, formatting and Hijri** (M) — §5, §13.3
   - Acceptance: `formatTime`/`formatDate` use `Intl.DateTimeFormat` with the configured IANA zone, 12/24 h; the local-midnight computation is zone-aware; DST spring/fall in America/Chicago and Istanbul handled; `hijri.ts` uses `islamic-umalqura` → `islamic` → hidden
   - Verify: suite runs under the `core-tz-utc` and `core-tz-tokyo` projects with identical results; Intl stub tests cover both fallbacks
   - Files: `src/core/time.ts`, `src/core/hijri.ts`, `tests/core/time.test.ts`, `tests/core/hijri.test.ts`, `vitest.config.ts`

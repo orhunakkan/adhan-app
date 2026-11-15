@@ -70,3 +70,49 @@ export function addDays(key: DateKey, days: number): DateKey {
 function pad(n: number): string {
   return String(n).padStart(2, '0');
 }
+
+export interface TimeFormat {
+  tz: string;
+  hour12: boolean;
+  seconds: boolean;
+  /** BCP 47 tag, e.g. 'tr', 'en', 'ar-u-nu-arab'. */
+  locale: string;
+}
+
+const timeFormatters = new Map<string, Intl.DateTimeFormat>();
+
+/** Clock-style time in the configured zone (never the device zone). */
+export function formatTime(date: Date, f: TimeFormat): string {
+  const key = `${f.locale}|${f.tz}|${f.hour12}|${f.seconds}`;
+  let fmt = timeFormatters.get(key);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat(f.locale, {
+      timeZone: f.tz,
+      hour: f.hour12 ? 'numeric' : '2-digit',
+      minute: '2-digit',
+      ...(f.seconds ? { second: '2-digit' as const } : {}),
+      hourCycle: f.hour12 ? 'h12' : 'h23',
+    });
+    timeFormatters.set(key, fmt);
+  }
+  return fmt.format(date);
+}
+
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+
+/** Long Gregorian date with weekday in the configured zone. */
+export function formatDate(date: Date, f: { tz: string; locale: string }): string {
+  const key = `${f.locale}|${f.tz}`;
+  let fmt = dateFormatters.get(key);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat(f.locale, {
+      timeZone: f.tz,
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    dateFormatters.set(key, fmt);
+  }
+  return fmt.format(date);
+}
