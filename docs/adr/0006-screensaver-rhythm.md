@@ -1,7 +1,7 @@
 # ADR-0006: Screensaver rhythm
 
 ## Status
-Accepted (interpretation of the brief; owner may change it)
+Superseded by ADR-0007
 
 ## Date
 2026-11-14

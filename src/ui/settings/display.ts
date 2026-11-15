@@ -1,6 +1,6 @@
-// Display (brief §9): theme, language (RTL), 12/24 h, seconds, panels, screensaver,
-// pattern, glass, night dim schedule and opacity.
-import { LANGUAGES, SCREENSAVER_MODES, THEMES, type Settings } from '../../config/schema';
+// Display (brief §9): theme, language (RTL), 12/24 h, seconds, pattern, glass,
+// night dim schedule and opacity.
+import { LANGUAGES, THEMES, type Settings } from '../../config/schema';
 import { t } from '../../i18n';
 import { group, segmented, stepper, toggle } from './controls';
 import { updateSettingsOrToast, type SettingsContext, type SettingsSection } from './shell';
@@ -49,23 +49,6 @@ export const displaySection: SettingsSection = {
       toggle(t(lang, 'display.glass'), d.glass, (glass) => update(ctx, { ...cur(), glass })),
     );
     pane.append(look.el);
-
-    const saver = group(t(lang, 'display.screensaver'));
-    saver.body.append(
-      segmented(
-        t(lang, 'display.screensaver'),
-        SCREENSAVER_MODES.map((v) => ({ value: v, label: t(lang, `screensaver.${v}`) })),
-        d.screensaverMode,
-        (screensaverMode) => update(ctx, { ...cur(), screensaverMode }),
-      ),
-      stepper(
-        t(lang, 'display.panelInterval'),
-        d.panelIntervalSec,
-        { min: 15, max: 600, step: 15, format: (n) => t(lang, 'unit.seconds', { n }) },
-        (panelIntervalSec) => update(ctx, { ...cur(), panelIntervalSec }),
-      ),
-    );
-    pane.append(saver.el);
 
     const night = group(t(lang, 'display.nightDim'));
     const nd = d.nightDim;

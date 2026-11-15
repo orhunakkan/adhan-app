@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BURN_IN_INTERVAL_MS, createBurnInShift, pillCorner } from '../../src/core/burnIn';
+import { BURN_IN_INTERVAL_MS, createBurnInShift } from '../../src/core/burnIn';
 import { seededRng } from '../helpers/seededRng';
 
 const start = new Date('2026-05-10T00:00:00Z').getTime();
@@ -40,14 +40,5 @@ describe('createBurnInShift', () => {
 
   it('exposes a 10-minute interval', () => {
     expect(BURN_IN_INTERVAL_MS).toBe(600_000);
-  });
-});
-
-describe('pillCorner', () => {
-  it('rotates through the four corners every 10 minutes', () => {
-    const seen = [0, 10, 20, 30, 40].map((m) => pillCorner(minutes(m)));
-    expect(new Set(seen.slice(0, 4)).size).toBe(4);
-    expect(seen[4]).toBe(seen[0]);
-    expect(pillCorner(minutes(9))).toBe(pillCorner(minutes(0)));
   });
 });

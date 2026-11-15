@@ -14,7 +14,7 @@ describe('defaults', () => {
     expect(defaultSettings.settingsVersion).toBe(SETTINGS_VERSION);
     expect(defaultSettings.location).toBeNull();
     expect(defaultSettings.pin).toBeNull();
-    expect(defaultSettings.photos).toEqual([]);
+    expect(defaultSettings).not.toHaveProperty('photos');
   });
 
   it('use the Turkish makam mapping with a separate Fajr file and dark theme', () => {
@@ -103,6 +103,38 @@ describe('loadSettings / saveSettings', () => {
     expect(s.display.theme).toBe('sand');
     expect(s.display.language).toBe(defaultSettings.display.language);
     expect(s.azan).toEqual(defaultSettings.azan);
+  });
+
+  it('loads settings stored before the screensaver was removed (ADR-0007), keeping every other value', () => {
+    // A real pre-removal object: photos, display.screensaverMode and display.panelIntervalSec.
+    const raw = JSON.parse(readFileSync(join(FIXTURES, 'v1.json'), 'utf8')) as Record<
+      string,
+      unknown
+    > & { display: Record<string, unknown> };
+    expect(raw.photos).toEqual(['p1', 'p2']);
+    expect(raw.display.screensaverMode).toBe('alternate');
+    expect(raw.display.panelIntervalSec).toBe(60);
+    const store = new MemoryStore({ [KEYS.settings]: JSON.stringify(raw) });
+    const onError = vi.fn();
+    const s = loadSettings(store, onError);
+    expect(onError).not.toHaveBeenCalled();
+    expect(s.settingsVersion).toBe(SETTINGS_VERSION);
+    expect(s.location).toEqual(raw.location);
+    expect(s.pin).toBe('4821');
+    expect(s.calc).toEqual(raw.calc);
+    expect(s.azan).toEqual(raw.azan);
+    expect(s.display.theme).toBe('emerald');
+    expect(s.display.showSeconds).toBe(true);
+    expect(s.display.nightDim).toEqual(raw.display.nightDim);
+    // The removed keys are dropped, and the next save no longer writes them.
+    expect(s).not.toHaveProperty('photos');
+    expect(s.display).not.toHaveProperty('screensaverMode');
+    expect(s.display).not.toHaveProperty('panelIntervalSec');
+    saveSettings(store, s);
+    const saved = JSON.parse(store.get(KEYS.settings)!) as Record<string, unknown>;
+    expect(saved).not.toHaveProperty('photos');
+    expect(saved.display).not.toHaveProperty('screensaverMode');
+    expect(loadSettings(store)).toEqual(s);
   });
 
   it('refuses to save invalid settings', () => {

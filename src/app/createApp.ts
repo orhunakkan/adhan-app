@@ -3,8 +3,7 @@
 import { settingsSchema, type Settings } from '../config/schema';
 import { createAudioController, type AudioState } from '../core/audio';
 import { blobBytes } from '../core/blobUsage';
-import { thumbKey } from '../core/photos';
-import { checkUpload, MAX_PHOTOS, referencedAudioKeys, UploadError } from '../core/uploads';
+import { checkUpload, unreferencedBlobKeys, UploadError } from '../core/uploads';
 import { createLogger, type LogEntry, type Logger } from '../core/logger';
 import { nightDimState, type NightDimState } from '../core/nightDim';
 import { periodAt, type PeriodInfo, type ThreeDays } from '../core/period';
@@ -13,7 +12,6 @@ import type {
   ChimePort,
   Clock,
   GeolocationPort,
-  PhotoProcessor,
   ServiceWorkerPort,
   KeyValueStore,
   MediaPlayer,
@@ -22,8 +20,6 @@ import type {
   WakeLockPort,
 } from '../core/ports';
 import type { City } from '../core/cities';
-import { parsePanels, shuffle, type Panel } from '../core/panels';
-import { createPhotoSource } from '../core/photos';
 import type { AzanPrayer } from '../core/prayerTimes';
 import { createScheduler, type PrayerEvent, type SchedulerEvent } from '../core/scheduler';
 import { formatTime } from '../core/time';
@@ -39,11 +35,9 @@ import { debugSection } from '../ui/debugPanel';
 import { mountNextPrayerCard } from '../ui/nextPrayerCard';
 import { mountPreAlert } from '../ui/preAlert';
 import { mountKiosk } from '../ui/kiosk';
-import { mountScreensaver } from '../ui/screensaver';
 import { aboutSection } from '../ui/settings/about';
 import { azanSection } from '../ui/settings/azan';
 import { calculationSection } from '../ui/settings/calculation';
-import { photosSection } from '../ui/settings/photos';
 import { displaySection } from '../ui/settings/display';
 import { locationSection } from '../ui/settings/location';
 import { mountSettings, type SettingsView } from '../ui/settings/shell';
@@ -70,9 +64,6 @@ export interface AppDeps {
   geolocation: GeolocationPort;
   /** Fetches and parses public/data/cities.json (lazy). */
   loadCities: () => Promise<City[]>;
-  /** Fetches public/panels/panels.json (validated here). */
-  loadPanels: () => Promise<unknown>;
-  photoProcessor: PhotoProcessor;
   /** navigator.storage.persist, when the browser has it (iOS 15.2+); asked once after Start. */
   persistStorage?: () => Promise<boolean>;
   serviceWorker?: ServiceWorkerPort;
@@ -100,7 +91,7 @@ export interface AppState {
   overlay: OverlayKind;
   wakeLock: WakeLockStatus;
   nightDim: NightDimState;
-  /** prefers-reduced-motion: no breathing, Ken Burns or drift; plain fades. */
+  /** prefers-reduced-motion: no breathing or drift; plain fades. */
   reducedMotion: boolean;
   /** A new service worker is waiting (brief §11). */
   updateAvailable: boolean;
@@ -140,8 +131,6 @@ export const SILENT_AZAN_MS = 3 * 60_000;
 export const MAX_AZAN_MS = 20 * 60_000;
 /** A queued azan (coincident prayers) still plays if it is at most this old. */
 const QUEUE_MAX_AGE_MS = 25 * 60_000;
-/** Settings-grid thumbnails: small, so 200 of them never cost full-size decodes. */
-const THUMB_EDGE = 320;
 /** After "Tap to enable azan", an azan this recent is replayed. */
 const REPLAY_WINDOW_MS = 5 * 60_000;
 
@@ -187,9 +176,8 @@ export function createApp(deps: AppDeps): App {
   );
   const queue: PrayerEvent[] = [];
   let uploads = 0;
-  /** A fresh blob key: 'a' for uploaded audio, 'p' for photos; unique even within one millisecond. */
-  const newBlobKey = (prefix: 'a' | 'p') =>
-    `${prefix}${deps.clock.now().getTime().toString(36)}${(uploads++).toString(36)}`;
+  /** A fresh blob key for uploaded audio ('a…'); unique even within one millisecond. */
+  const newBlobKey = () => `a${deps.clock.now().getTime().toString(36)}${(uploads++).toString(36)}`;
   let lastUpdateCheck: string | null = null;
   let citiesPromise: Promise<City[]> | null = null;
   let persistAsked = false;
@@ -226,20 +214,6 @@ export function createApp(deps: AppDeps): App {
   const nextCard = mountNextPrayerCard(layout.next);
   const timeline = mountTimeline(layout.timeline);
   const preAlert = mountPreAlert(main);
-  let panels: readonly Panel[] = [];
-  const photos = createPhotoSource({
-    blobs: deps.blobs,
-    objectUrls: deps.objectUrls,
-    keys: () => store.get().settings.photos,
-    doc: deps.doc,
-  });
-  const screensaver = mountScreensaver(deps.root, {
-    clock: deps.clock,
-    panels: () => panels,
-    photoSlide: () => photos.slide(),
-    primePhotos: () => photos.prime(),
-    suppressed: (s) => s.nightDim.active || (late.settings?.isOpen() ?? false),
-  });
   const kiosk = mountKiosk(deps.root, { shifted: layout.root, rng: deps.rng, doc: deps.doc });
   const reducedMotion = deps.win.matchMedia('(prefers-reduced-motion: reduce)');
   const onMotion = () => store.update({ reducedMotion: reducedMotion.matches });
@@ -412,30 +386,31 @@ export function createApp(deps: AppDeps): App {
   };
   applyDisplay(settings);
   let lastDisplay = settings.display;
-  let lastPhotos = settings.photos;
   let lastAzan = settings.azan;
-  /** Deletes uploaded audio no prayer (or the dua) uses any more. */
-  const pruneAudio = async () => {
+  /**
+   * Deletes stored files nothing refers to: audio no prayer (or the dua) uses
+   * any more, and photos/thumbnails left by the removed screensaver (ADR-0007).
+   * Runs at startup and whenever the azan settings change; a referenced audio
+   * blob is never deleted. `leftoversOnly` (startup) also spares
+   * uploaded audio ('a…' keys): if stored settings were ever lost and reset to
+   * defaults, a startup pass must not also delete the owner's recordings.
+   * Unused audio is removed only after the owner changes the azan settings.
+   */
+  const pruneBlobs = async (leftoversOnly = false) => {
     try {
-      const used = referencedAudioKeys(store.get().settings);
-      for (const key of await deps.blobs.keys()) {
-        if (key.startsWith('a') && !used.has(key)) {
-          await deps.blobs.delete(key);
-          log.info('unused audio deleted', { key });
-        }
-      }
+      const unused = unreferencedBlobKeys(await deps.blobs.keys(), store.get().settings).filter(
+        (key) => !leftoversOnly || !key.startsWith('a'),
+      );
+      for (const key of unused) await deps.blobs.delete(key);
+      if (unused.length) log.info('unreferenced files deleted', { count: unused.length });
     } catch (err) {
-      log.warn('audio cleanup failed', String(err));
+      log.warn('file cleanup failed', String(err));
     }
   };
   store.subscribe((s) => {
     if (s.settings.azan !== lastAzan) {
       lastAzan = s.settings.azan;
-      void pruneAudio();
-    }
-    if (s.settings.photos !== lastPhotos) {
-      lastPhotos = s.settings.photos;
-      photos.reset(); // a deleted photo's prepared URL must not linger
+      void pruneBlobs();
     }
     if (s.settings.display !== lastDisplay) {
       lastDisplay = s.settings.display;
@@ -455,7 +430,6 @@ export function createApp(deps: AppDeps): App {
     timeline.render(s);
     preAlert.render(s);
     azanView.render(s);
-    screensaver.render(s);
     kiosk.render(s);
     late.settings?.render(s);
   };
@@ -552,10 +526,8 @@ export function createApp(deps: AppDeps): App {
     dispose() {
       scheduler.stop();
       late.settings?.destroy();
-      screensaver.destroy();
       kiosk.destroy();
       reducedMotion.removeEventListener('change', onMotion);
-      photos.reset();
       overlayView.destroy();
       layout.destroy();
       toast.destroy();
@@ -573,7 +545,6 @@ export function createApp(deps: AppDeps): App {
       calculationSection,
       azanSection,
       displaySection,
-      photosSection,
       aboutSection,
       debugSection,
     ],
@@ -586,8 +557,8 @@ export function createApp(deps: AppDeps): App {
           throw err;
         })),
       saveAudio: async (file) => {
-        checkUpload(file, 'audio');
-        const key = newBlobKey('a');
+        checkUpload(file);
+        const key = newBlobKey();
         try {
           await deps.blobs.set(key, file);
         } catch (err) {
@@ -598,55 +569,17 @@ export function createApp(deps: AppDeps): App {
         return `user:${key}`;
       },
       storageUsed: () => blobBytes(deps.blobs),
-      savePhotos: async (files) => {
-        const current = store.get().settings.photos;
-        if (current.length + files.length > MAX_PHOTOS) throw new UploadError('tooMany');
-        for (const file of files) checkUpload(file, 'image');
-        const keys: string[] = [];
-        try {
-          for (const file of files) {
-            const full = await deps.photoProcessor.resize(file);
-            const thumb = await deps.photoProcessor.resize(file, THUMB_EDGE);
-            const key = newBlobKey('p');
-            await deps.blobs.set(key, full);
-            keys.push(key);
-            await deps.blobs.set(thumbKey(key), thumb);
-          }
-        } catch (err) {
-          log.error('photo upload failed', String(err));
-          throw err instanceof UploadError ? err : new UploadError('storageFull');
-        } finally {
-          // Whatever was stored stays visible and deletable, even if a later file failed.
-          if (keys.length)
-            app.updateSettings({ photos: [...store.get().settings.photos, ...keys] });
-          log.info('photos uploaded', { count: keys.length });
-        }
-      },
-      deletePhoto: async (key) => {
-        await deps.blobs.delete(key);
-        await deps.blobs.delete(thumbKey(key));
-        app.updateSettings({ photos: store.get().settings.photos.filter((k) => k !== key) });
-      },
-      photoUrl: async (key) => {
-        const blob = (await deps.blobs.get(thumbKey(key))) ?? (await deps.blobs.get(key));
-        return blob ? deps.objectUrls.create(blob) : null;
-      },
       clearFiles: async () => {
         for (const key of await deps.blobs.keys()) await deps.blobs.delete(key);
         log.info('all uploaded files deleted');
       },
-      revokeUrl: (url) => deps.objectUrls.revoke(url),
     },
     matchMedia: (q) => deps.win.matchMedia(q),
     toast: (message) => toast.show({ message }),
   });
 
-  void deps
-    .loadPanels()
-    .then((json) => {
-      panels = shuffle(parsePanels(json), deps.rng);
-    })
-    .catch((err: unknown) => log.warn('panels could not load', String(err)));
+  // Settings are loaded: clear out old photos and thumbnails (audio is kept; see pruneBlobs).
+  void pruneBlobs(true);
 
   /** Update toast: stays up until tapped; the tap is gated so a reload never lands near an azan. */
   const UPDATE_TOAST_MS = 24 * 3_600_000;

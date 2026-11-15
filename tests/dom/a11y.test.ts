@@ -5,7 +5,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { defaultSettings } from '../../src/config/defaults';
 import { computeDay } from '../../src/core/prayerTimes';
-import { LONG_PRESS_MS } from '../../src/ui/settings/shell';
 import { SCHAUMBURG } from '../helpers/days';
 import { mountApp, type Mounted } from '../helpers/mountApp';
 
@@ -69,9 +68,8 @@ function expectTrapped(dialog: HTMLElement, state: string) {
   }
 }
 
-function openSettings(m: Mounted) {
-  q('.settings-hotspot')!.dispatchEvent(new Event('pointerdown'));
-  m.clock.advanceBy(LONG_PRESS_MS);
+function openSettings() {
+  q('.settings-button')!.click();
 }
 
 describe.each(['tr', 'ar'] as const)('accessibility sweep (%s)', (language) => {
@@ -103,7 +101,7 @@ describe.each(['tr', 'ar'] as const)('accessibility sweep (%s)', (language) => {
     sweep('main screen');
     expect(q('.prealert')!.getAttribute('aria-live')).toBe('polite');
     expect(q('.toast-region')!.getAttribute('aria-live')).toBe('polite');
-    expect(q('.settings-hotspot')!.getAttribute('aria-label')).toBe(
+    expect(q('.settings-button')!.getAttribute('aria-label')).toBe(
       language === 'tr' ? 'Ayarlar' : 'الإعدادات',
     );
   });
@@ -133,16 +131,16 @@ describe.each(['tr', 'ar'] as const)('accessibility sweep (%s)', (language) => {
 
   it('PIN pad: named keys, focus trapped, rest inert', () => {
     m = mountApp({ start: t.asr, settings: { ...settings, pin: '4821' } });
-    openSettings(m);
+    openSettings();
     sweep('PIN pad');
     expectTrapped(q('.pin')!, 'PIN pad');
   });
 
   it('every settings section, including Diagnostics', async () => {
     m = mountApp({ start: t.asr, settings });
-    openSettings(m);
+    openSettings();
     expectTrapped(q('.settings')!, 'settings');
-    for (const id of ['location', 'calculation', 'azan', 'display', 'photos', 'about']) {
+    for (const id of ['location', 'calculation', 'azan', 'display', 'about']) {
       qa('.settings__section')
         .find((b) => b.dataset.section === id)!
         .click();
@@ -161,7 +159,7 @@ describe('stacked modals', () => {
   it('a modal opened over Settings is the only reachable layer; closing Settings keeps the earlier modal', async () => {
     m = mountApp({ start: new Date(t.dhuhr.getTime() - 3600_000) });
     await flush();
-    openSettings(m); // e.g. the owner opened Settings, then the start overlay is still up
+    openSettings(); // e.g. the owner opened Settings, then the start overlay is still up
     const settingsLayer = q('.settings')!.closest<HTMLElement>('.settings-layer')!;
     const overlayLayer = q('.overlay')!.closest<HTMLElement>('.overlay-layer')!;
     expect(overlayLayer.inert).toBe(true);
@@ -169,9 +167,9 @@ describe('stacked modals', () => {
     q('.settings')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     expect(overlayLayer.inert).toBe(false);
     expect(q('.app-main')!.inert).toBe(true);
-    expect(q('.settings-hotspot')!.inert).toBe(true);
+    expect(q('.settings-button')!.inert).toBe(true);
     await m.app.tapStart();
     expect(q('.app-main')!.inert).toBe(false);
-    expect(q('.settings-hotspot')!.inert).toBe(false);
+    expect(q('.settings-button')!.inert).toBe(false);
   });
 });

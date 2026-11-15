@@ -2,7 +2,7 @@ import { createStore, del, get, keys, set, type UseStore } from 'idb-keyval';
 import type { BlobStore } from '../core/ports';
 
 /**
- * BlobStore over IndexedDB (idb-keyval), for uploaded azan audio and photos.
+ * BlobStore over IndexedDB (idb-keyval), for uploaded azan audio.
  * Safari can close a long-lived connection (after the device sleeps, or under
  * memory pressure) without firing `close`, leaving every later call failing
  * with InvalidStateError. Each operation therefore retries once on a freshly

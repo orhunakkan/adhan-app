@@ -26,7 +26,6 @@ export interface MountOptions {
   /** Reuse an existing clock (e.g. to simulate a reload at the same moment). */
   clock?: FakeClock;
   geolocation?: GeolocationPort;
-  loadPanels?: () => Promise<unknown>;
   loadCities?: () => Promise<City[]>;
   persistStorage?: () => Promise<boolean>;
   serviceWorker?: ServiceWorkerPort;
@@ -81,11 +80,8 @@ export function mountApp(opts: MountOptions = {}): Mounted {
     chime,
     geolocation: opts.geolocation ?? { getPosition: () => Promise.reject(new Error('denied')) },
     loadCities: opts.loadCities ?? (() => Promise.resolve(testCities())),
-    // Tests don't decode images: the 'resized' photo is the upload itself.
-    photoProcessor: { resize: (file) => Promise.resolve(file) },
     ...(opts.persistStorage ? { persistStorage: opts.persistStorage } : {}),
     ...(opts.serviceWorker ? { serviceWorker: opts.serviceWorker } : {}),
-    loadPanels: () => opts.loadPanels?.() ?? Promise.resolve(testPanels()),
     objectUrls: { create: (b) => URL.createObjectURL(b), revoke: (u) => URL.revokeObjectURL(u) },
     createPlayer: () => {
       const p = new FakeMediaPlayer();
@@ -122,11 +118,4 @@ export function testCities(): City[] {
     ),
   );
   return cities;
-}
-
-/** The real bundled placeholder panels. */
-export function testPanels(): unknown {
-  return JSON.parse(
-    readFileSync(join(import.meta.dirname, '..', '..', 'public', 'panels', 'panels.json'), 'utf8'),
-  );
 }

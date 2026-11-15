@@ -2,7 +2,6 @@
 import { createWebAudioChime } from './adapters/chime';
 import { browserClock } from './adapters/clock';
 import { createBrowserGeolocation } from './adapters/geolocation';
-import { createCanvasPhotoProcessor } from './adapters/photoResize';
 import { createIdbBlobStore } from './adapters/idbBlobStore';
 import { createLocalStore } from './adapters/localStore';
 import { createAudioElementPlayer } from './adapters/media';
@@ -56,17 +55,11 @@ function start(root: HTMLElement) {
     },
     wakeLock: createBrowserWakeLock(navigator),
     geolocation: createBrowserGeolocation(navigator),
-    photoProcessor: createCanvasPhotoProcessor(document),
     serviceWorker: import.meta.env.PROD ? createServiceWorker(navigator, location) : undefined,
     persistStorage:
       'storage' in navigator && 'persist' in navigator.storage
         ? () => navigator.storage.persist()
         : undefined,
-    loadPanels: async () => {
-      const res = await fetch('/panels/panels.json');
-      if (!res.ok) throw new Error(`panels.json: ${res.status}`);
-      return res.json() as Promise<unknown>;
-    },
     loadCities: async () => {
       const res = await fetch('/data/cities.json');
       if (!res.ok) throw new Error(`cities.json: ${res.status}`);

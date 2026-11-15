@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { defaultSettings } from '../../src/config/defaults';
 import { computeDay } from '../../src/core/prayerTimes';
-import { LONG_PRESS_MS } from '../../src/ui/settings/shell';
 import { SCHAUMBURG } from '../helpers/days';
 import { MemoryStore } from '../helpers/memoryStore';
 import { mountApp, type Mounted } from '../helpers/mountApp';
@@ -14,9 +13,8 @@ const value = (key: string) => q(`[data-debug="${key}"] .debug__value`).textCont
 const calc = { ...defaultSettings.calc, method: 'NorthAmerica' as const };
 const t = computeDay('2026-05-10', SCHAUMBURG, calc);
 
-function openDebug(m: Mounted) {
-  q('.settings-hotspot').dispatchEvent(new Event('pointerdown'));
-  m.clock.advanceBy(LONG_PRESS_MS);
+function openDebug() {
+  q('.settings-button').click();
   [...document.querySelectorAll<HTMLElement>('.settings__section')]
     .find((b) => b.dataset.section === 'about')!
     .click();
@@ -29,8 +27,7 @@ describe('debug panel', () => {
 
   it('is hidden from the sidebar and opened from About', () => {
     m = mountApp({ start: t.asr });
-    q('.settings-hotspot').dispatchEvent(new Event('pointerdown'));
-    m.clock.advanceBy(LONG_PRESS_MS);
+    q('.settings-button').click();
     expect(
       [...document.querySelectorAll<HTMLElement>('.settings__section')].map(
         (b) => b.dataset.section,
@@ -53,7 +50,7 @@ describe('debug panel', () => {
     await m.clock.advanceToAsync(new Date(t.asr.getTime() + 1000));
     await flush();
     await m.blobs.set('x', new Blob(['1234']));
-    openDebug(m);
+    openDebug();
     await flush();
     expect(value('version')).toMatch(/^v\d/);
     expect(value('debug.sw')).toBe('unsupported');
@@ -71,7 +68,7 @@ describe('debug panel', () => {
 
   it('shows dashes before anything happened', () => {
     m = mountApp({ start: new Date(t.asr.getTime() - 30 * 60_000) });
-    openDebug(m);
+    openDebug();
     expect(value('debug.health')).toBe('—');
     expect(value('debug.lastFired')).toBe('—');
     expect(value('debug.reloads')).toBe('0');
@@ -88,7 +85,7 @@ describe('debug panel', () => {
       },
     });
     waiting!();
-    openDebug(m);
+    openDebug();
     expect(value('debug.sw')).toBe('update waiting');
   });
 
