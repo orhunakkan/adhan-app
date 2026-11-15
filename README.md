@@ -40,7 +40,7 @@ This repository is **public**, so it ships **no azan recordings** — only the g
 Good sources: albums you bought (personal use), recordings made at your mosque with permission. Two ways to get them onto the iPad:
 
 1. **Upload on the iPad (default):** Settings → Azan → *Dosya yükle* per prayer. Files are stored on that iPad only (IndexedDB).
-2. **Bundle them in a local build:** normalise each file and put it in `public/audio/`, then deploy that build by direct upload (see Deploy). Names the app looks for: `saba-sabah` (Fajr, with *es-salâtü hayrun mine'n-nevm*), `saba`, `ussak`, `rast`, `segah`, `hicaz`, `huseyni`, `dua`. Default mapping: Fajr → saba-sabah, Dhuhr → uşşak, Asr → rast, Maghrib → segâh, Isha → hicaz.
+2. **Bundle them in a local build:** normalise each file and put it in `public/audio/`, then deploy that build by direct upload (see Deploy). **Warning:** the deployed site is public, so anyone who finds its URL can download those recordings. Only bundle files you are allowed to publish, or put the site behind Cloudflare Access (free for small teams). Otherwise use option 1. Names the app looks for: `saba-sabah` (Fajr, with *es-salâtü hayrun mine'n-nevm*), `saba`, `ussak`, `rast`, `segah`, `hicaz`, `huseyni`, `dua`. Default mapping: Fajr → saba-sabah, Dhuhr → uşşak, Asr → rast, Maghrib → segâh, Isha → hicaz.
 
 ```sh
 scripts/normalize-audio.sh input.mp3 public/audio/ussak.m4a   # trim silence, -16 LUFS, AAC 128k
@@ -54,7 +54,7 @@ If no file can play for a prayer, a soft chime plays instead and Settings shows 
 Use **one** method per project; don't mix them.
 
 - **Git integration (recommended):** Cloudflare dashboard → Workers & Pages → Create → Pages → connect this GitHub repo. Build command `npm run build`, output `dist`, production branch `main`, Node LTS. Turn off or limit preview builds (500 builds/month on the free plan). No secrets are needed.
-- **Direct upload (for a build that includes your own audio):** `npm run build && npx wrangler pages deploy dist` (run `npx wrangler login` once).
+- **Direct upload (for a build that includes your own audio; see the warning above):** `npm run build && npx wrangler pages deploy dist` (run `npx wrangler login` once).
 
 `public/_headers` sets long caching for hashed assets and fonts, `no-cache` for the HTML, service worker and manifest, and a strict Content-Security-Policy.
 
@@ -66,6 +66,7 @@ Use **one** method per project; don't mix them.
 4. **Settings → Accessibility → Guided Access → On** with a passcode, and set **Display Auto-Lock → Never** there too (Guided Access has its own auto-lock). Triple-click to start Guided Access in the app.
 5. Set the volume with the **hardware buttons** (iOS ignores app volume), tap **Start**, then use **Test** for each prayer in Settings → Azan.
 6. In the app, open Settings (press and hold the **top-right corner (top-left in Arabic) for 3 seconds**), set your location (Location → *Konumumu kullan*, a city, or manual), the calculation method and any minute offsets to match your mosque. Optionally set a PIN. Your real location is entered on the iPad only, never committed.
+   The PIN only keeps curious hands out of Settings. It is stored on the iPad without encryption, and five wrong tries lock the pad for 30 seconds. **Guided Access is the real lock**: it keeps people from leaving the app, changing the volume or reaching iPadOS settings.
 7. **Battery:** this iPad has no charge limit. An old battery kept at 100 % can swell: consider a smart plug that cycles charging, and check now and then for a lifting screen.
 8. The Air 2 / mini 4 have LCD screens, so burn-in is a small risk; pixel shift and night dim stay on anyway.
 9. Web Inspector (memory, fps) needs a Mac with Safari over USB and Settings → Safari → Advanced → Web Inspector. Without a Mac, use the **reload count** in Settings → About → *Tanılama* as the leak signal.
@@ -79,6 +80,8 @@ If the azan ever cannot play (after a reboot, or iOS revoked audio), the screen 
 - [ ] Wi-Fi off for a full day: azans still fire; fonts and panels render.
 - [ ] Reboot the iPad: the Start overlay appears; one tap and the next azan works.
 - [ ] Trigger Siri during an azan: the Resume button appears and works.
+- [ ] Airplane mode, then wait for the 3-minute health check before a prayer: no warning appears, and the azan plays from the offline cache (bundled files and uploads).
+- [ ] VoiceOver on (Settings → Accessibility): the Start button, the Settings corner, every settings control and the PIN keys are announced by name, and the azan screen announces the prayer.
 - [ ] Photo slideshow for 24 hours: memory stable (Web Inspector) or reload count unchanged.
 - [ ] The screen stays on for 24 hours inside Guided Access (both Auto-Lock settings at Never).
 - [ ] Deploy an update: the toast appears, *Apply* is refused within 5 minutes of a prayer, and works otherwise.
