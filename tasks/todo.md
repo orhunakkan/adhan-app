@@ -77,8 +77,12 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Deps: 7
 
 ### Checkpoint 2: Prayer engine
-- [ ] `npm run ci` green; core coverage ≥ 95% on all four metrics
-- [ ] Summary of any fixture deviations > 1 min (candidates for documented offsets)
+- [x] `npm run ci` green; core coverage ≥ 95% on all four metrics (100% at checkpoint)
+- [x] Summary of any fixture deviations > 1 min (candidates for documented offsets)
+  - İstanbul vs Diyanet: Asr up to 2 min (others ≤ 1). Candidate: Asr offset to match Diyanet exactly (README).
+  - Oslo vs Aladhan: Dhuhr up to 2 min (adhan adds +1 min to MWL Dhuhr; Aladhan doesn't).
+  - Schaumburg: checked against the NOAA oracle instead of Aladhan (owner decision); adhan within 90 s all year.
+  - Isha can equal Fajr under MiddleOfTheNight at high latitude (Oslo June): two azans due at once, handled in task 13.
 
 ---
 
