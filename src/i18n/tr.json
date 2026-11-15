@@ -23,5 +23,19 @@
   "azan.time": "Vakit {time}",
   "azan.label": "Ezan vakti",
   "dua.title": "Ezan duası",
-  "dua.text": "Allah'ım! Bu eksiksiz davetin ve kılınacak namazın Rabbi! Muhammed'e vesîleyi ve fazîleti ver ve onu vaat ettiğin övülmüş makama ulaştır."
+  "dua.text": "Allah'ım! Bu eksiksiz davetin ve kılınacak namazın Rabbi! Muhammed'e vesîleyi ve fazîleti ver ve onu vaat ettiğin övülmüş makama ulaştır.",
+  "settings.title": "Ayarlar",
+  "settings.close": "Kapat",
+  "settings.back": "Geri",
+  "settings.saved": "Kaydedildi",
+  "settings.invalid": "Geçersiz değer",
+  "pin.title": "PIN girin",
+  "pin.wrong": "Yanlış PIN",
+  "pin.delete": "Sil",
+  "section.location": "Konum",
+  "section.calculation": "Hesaplama",
+  "section.azan": "Ezan",
+  "section.display": "Görünüm",
+  "section.photos": "Fotoğraflar",
+  "section.about": "Hakkında"
 }
