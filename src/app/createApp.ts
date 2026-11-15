@@ -17,6 +17,7 @@ import type {
   WakeLockPort,
 } from '../core/ports';
 import type { City } from '../core/cities';
+import { parsePanels, shuffle, type Panel } from '../core/panels';
 import type { AzanPrayer } from '../core/prayerTimes';
 import { createScheduler, type PrayerEvent, type SchedulerEvent } from '../core/scheduler';
 import { createWakeLockManager, type WakeLockStatus } from '../core/wakeLock';
@@ -28,6 +29,7 @@ import { mountBackground } from '../ui/background';
 import { mountClockView } from '../ui/clockView';
 import { mountNextPrayerCard } from '../ui/nextPrayerCard';
 import { mountPreAlert } from '../ui/preAlert';
+import { mountScreensaver } from '../ui/screensaver';
 import { aboutSection } from '../ui/settings/about';
 import { azanSection } from '../ui/settings/azan';
 import { calculationSection } from '../ui/settings/calculation';
@@ -57,6 +59,8 @@ export interface AppDeps {
   geolocation: GeolocationPort;
   /** Fetches and parses public/data/cities.json (lazy). */
   loadCities: () => Promise<City[]>;
+  /** Fetches public/panels/panels.json (validated here). */
+  loadPanels: () => Promise<unknown>;
 }
 
 export interface ActiveAzan {
@@ -162,6 +166,12 @@ export function createApp(deps: AppDeps): App {
   const nextCard = mountNextPrayerCard(layout.next);
   const timeline = mountTimeline(layout.timeline);
   const preAlert = mountPreAlert(main);
+  let panels: readonly Panel[] = [];
+  const screensaver = mountScreensaver(deps.root, {
+    clock: deps.clock,
+    panels: () => panels,
+    suppressed: () => late.settings?.isOpen() ?? false,
+  });
   const azanView = mountAzanView(deps.root, {
     onStop: () => app.stopAzan(),
     position: () => audio.position(),
@@ -329,6 +339,7 @@ export function createApp(deps: AppDeps): App {
     timeline.render(s);
     preAlert.render(s);
     azanView.render(s);
+    screensaver.render(s);
     late.settings?.render(s);
   };
   store.subscribe(renderViews);
@@ -413,6 +424,13 @@ export function createApp(deps: AppDeps): App {
     matchMedia: (q) => deps.win.matchMedia(q),
     toast: (message) => toast.show({ message }),
   });
+
+  void deps
+    .loadPanels()
+    .then((json) => {
+      panels = shuffle(parsePanels(json), deps.rng);
+    })
+    .catch((err: unknown) => log.warn('panels could not load', String(err)));
 
   scheduler.start();
   log.info('app started');

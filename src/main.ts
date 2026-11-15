@@ -40,6 +40,11 @@ function start(root: HTMLElement) {
     },
     wakeLock: createBrowserWakeLock(navigator),
     geolocation: createBrowserGeolocation(navigator),
+    loadPanels: async () => {
+      const res = await fetch('/panels/panels.json');
+      if (!res.ok) throw new Error(`panels.json: ${res.status}`);
+      return res.json() as Promise<unknown>;
+    },
     loadCities: async () => {
       const res = await fetch('/data/cities.json');
       if (!res.ok) throw new Error(`cities.json: ${res.status}`);

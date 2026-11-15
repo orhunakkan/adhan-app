@@ -223,7 +223,7 @@ The standard verification for every task (on top of its own checks) is: the new 
 
 ## Phase 6: Screensaver and kiosk
 
-- [ ] **Task 29: Panels** (S) — §9 Panels, §8.6
+- [x] **Task 29: Panels** (S) — §9 Panels, §8.6
   - Acceptance: `public/panels/panels.json` (10–20 placeholder EN Pickthall + AR entries with sources, marked placeholder) validated by zod; rotation every N s; Arabic above translation; ≤ 2 panel nodes; crossfade
   - Verify: `tests/core/panelsData.test.ts`, `tests/dom/panels.test.ts`
   - Files: `public/panels/panels.json`, `src/ui/panels.ts`, `tests/core/panelsData.test.ts`, `tests/dom/panels.test.ts`
