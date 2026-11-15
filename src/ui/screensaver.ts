@@ -9,7 +9,7 @@ import type { PhotoSlide } from '../core/photos';
 import type { Clock, TimerHandle } from '../core/ports';
 import { formatTime } from '../core/time';
 import { INTL_LOCALE, prayerName } from '../i18n';
-import { h, setText, toggleClass } from './dom';
+import { h, setAttr, setText, toggleClass } from './dom';
 import { formatCountdown } from './nextPrayerCard';
 import { renderPanel } from './panels';
 
@@ -111,7 +111,7 @@ export function mountScreensaver(
       });
       const active = slot.kind === 'slide';
       toggleClass(root, 'screensaver--active', active);
-      root.setAttribute('aria-hidden', active ? 'false' : 'true');
+      setAttr(root, 'aria-hidden', active ? 'false' : 'true');
       if (slot.kind === 'clock') {
         if (current) show(null);
         shownIndex = null;

@@ -3,7 +3,7 @@ import type { AppState } from '../app/createApp';
 import { formatHijri } from '../core/hijri';
 import { formatDate, timeParts } from '../core/time';
 import { INTL_LOCALE, t } from '../i18n';
-import { h, setText, toggleClass } from './dom';
+import { h, setHidden, setText, toggleClass } from './dom';
 
 export interface ClockView {
   render(s: AppState): void;
@@ -51,11 +51,11 @@ export function mountClockView(host: HTMLElement): ClockView {
         setText(date, formatDate(s.now, { tz, locale }));
         const hij = formatHijri(s.now, { tz, locale });
         setText(hijri, hij ?? '');
-        hijri.hidden = hij === null;
+        setHidden(hijri, hij === null);
       }
       setText(place, location?.name ?? t(lang, 'location.missing'));
       setText(prompt, s.needsLocation ? t(lang, 'location.prompt') : '');
-      prompt.hidden = !s.needsLocation;
+      setHidden(prompt, !s.needsLocation);
     },
   };
 }
