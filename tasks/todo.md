@@ -64,7 +64,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/core/time.ts`, `src/core/hijri.ts`, `tests/core/time.test.ts`, `tests/core/hijri.test.ts`, `vitest.config.ts`
   - Deps: 7
 
-- [ ] **Task 9: Period and update gate** (S) — §8.3, §11
+- [x] **Task 9: Period and update gate** (S) — §8.3, §11
   - Acceptance: `currentPeriod(now, times)` returns fajr/sunrise/dhuhr/asr/maghrib/isha correct at and around each boundary (incl. after midnight → isha, before fajr); `canApplyUpdate(now, times, azanPlaying)` blocks within 5 min before any azan prayer and during an azan
   - Verify: table-driven boundary tests at T−1 s / T / T+1 s
   - Files: `src/core/period.ts`, `src/core/updateGate.ts`, `tests/core/period.test.ts`, `tests/core/updateGate.test.ts`

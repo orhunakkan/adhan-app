@@ -180,6 +180,17 @@ describe('computeDay invariants', () => {
     );
   });
 
+  it('returns whole minutes, even for high-latitude safe times', () => {
+    for (const rule of ['MiddleOfTheNight', 'SeventhOfTheNight', 'TwilightAngle'] as const) {
+      const t = computeDay(
+        '2026-06-21',
+        OSLO,
+        calc({ method: 'MuslimWorldLeague', highLatitudeRule: rule }),
+      );
+      for (const p of PRAYERS) expect(t[p].getTime() % 60_000, `${rule} ${p}`).toBe(0);
+    }
+  });
+
   it('resolves polar day inside the Arctic circle instead of returning NaN', () => {
     const t = computeDay('2026-06-21', TROMSO, calc({ method: 'MuslimWorldLeague' }));
     for (const p of PRAYERS) expect(Number.isFinite(t[p].getTime()), p).toBe(true);
