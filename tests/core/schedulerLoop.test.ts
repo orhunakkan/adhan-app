@@ -193,6 +193,23 @@ describe('scheduler loop', () => {
     expect(ofType(h.events, 'preAlert')).toEqual([]);
   });
 
+  it('calls onTick once per second with the current days', () => {
+    const clock = new FakeClock(new Date('2026-05-10T05:00:00Z'));
+    const ticks: Array<string | undefined> = [];
+    const s = createScheduler({
+      clock,
+      store: new MemoryStore(),
+      getSettings: () => settingsAt(),
+      onEvent: () => {},
+      onTick: (_now, days) => ticks.push(days?.today.dateKey),
+    });
+    s.start();
+    clock.advanceBy(3000);
+    s.stop();
+    clock.dispose();
+    expect(ticks).toEqual(['2026-05-10', '2026-05-10', '2026-05-10', '2026-05-10']);
+  });
+
   it('start() is idempotent and stop() halts ticking', () => {
     h = harness(new Date('2026-05-10T05:00:00Z'), settingsAt());
     h.scheduler.start();
