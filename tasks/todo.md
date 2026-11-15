@@ -217,7 +217,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Deps: 25
 
 ### Checkpoint 5: Configurable
-- [ ] `npm run ci` green; the settings flow runs end to end in `mountApp()`
+- [x] `npm run ci` green; the settings flow runs end to end in `mountApp()`
 
 ---
 
