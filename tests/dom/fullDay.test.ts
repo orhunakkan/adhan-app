@@ -40,11 +40,14 @@ describe('full-day simulation in Schaumburg (00:00 → 23:59)', () => {
       expect(document.querySelectorAll('.sky__layer--visible')).toHaveLength(1);
       if (p === 'sunrise') {
         expect(m.app.state().azan).toBeNull(); // sunrise never plays
+        expect(q('.azan').classList.contains('azan--visible')).toBe(false);
       } else {
         expect(m.app.state().azan?.prayer, p).toBe(p);
+        expect(q('.azan').classList.contains('azan--visible'), p).toBe(true);
         m.player!.finish();
         await flush();
         expect(m.app.state().azan, `${p} back to clock`).toBeNull();
+        expect(q('.azan').classList.contains('azan--visible'), p).toBe(false);
       }
     }
     await m.clock.advanceToAsync(new Date('2026-05-11T04:59:00Z')); // 23:59

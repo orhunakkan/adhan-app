@@ -299,3 +299,117 @@
     transition-duration: 1ms;
   }
 }
+
+@layer views {
+  /* Azan moment (brief §8.5): opacity/transform only. */
+  .azan {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-7);
+    text-align: center;
+    pointer-events: none;
+    background: var(--bg-1);
+    opacity: 0;
+    transform: scale(1.03);
+    transition:
+      opacity var(--dur-slow) var(--ease-out),
+      transform var(--dur-slow) var(--ease-out);
+  }
+
+  .azan--visible {
+    pointer-events: auto;
+    opacity: 1;
+    transform: none;
+  }
+
+  .azan__glow {
+    position: absolute;
+    inline-size: min(70vmin, 36rem);
+    aspect-ratio: 1;
+    background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
+    border-radius: 50%;
+    opacity: 0.8;
+  }
+
+  .azan--visible .azan__glow--breathing {
+    animation: breathe 24s ease-in-out infinite; /* slow: at least 20 s (brief §8.9) */
+  }
+
+  .azan__label,
+  .azan__time {
+    position: relative;
+    font-size: var(--type-secondary);
+    color: var(--text-2);
+  }
+
+  .azan__name {
+    position: relative;
+    margin: 0;
+    font-size: clamp(4rem, 11vw, 9rem);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+  }
+
+  .azan__arabic {
+    position: relative;
+    font-family: var(--font-verse);
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    color: var(--accent);
+  }
+
+  .azan__dua {
+    position: relative;
+    max-inline-size: 60ch;
+    line-height: 1.6;
+  }
+
+  .azan__dua-title {
+    font-size: var(--type-secondary);
+    color: var(--text-2);
+  }
+
+  .azan__progress {
+    position: relative;
+    inline-size: min(60vw, 32rem);
+    block-size: 4px;
+    overflow: hidden;
+    background: var(--surface-border);
+    border-radius: var(--radius-pill);
+  }
+
+  .azan__progress-bar {
+    block-size: 100%;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 1s linear;
+  }
+
+  :root[dir='rtl'] .azan__progress-bar {
+    transform-origin: right;
+  }
+
+  .azan__stop {
+    position: relative;
+    margin-block-start: var(--space-5);
+  }
+
+  @keyframes breathe {
+    0%,
+    100% {
+      opacity: 0.5;
+      transform: scale(0.92);
+    }
+
+    50% {
+      opacity: 0.9;
+      transform: scale(1.05);
+    }
+  }
+}

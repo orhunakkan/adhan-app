@@ -178,7 +178,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/ui/background.ts`, `public/patterns/*.svg`, `tests/dom/fullDay.test.ts`, `tests/dom/themes.test.ts`
   - Deps: 18, 22
 
-- [ ] **Task 24: Azan view** (M) — §8.5
+- [x] **Task 24: Azan view** (M) — §8.5
   - Acceptance: full-screen takeover (600 ms fade/scale), name TR + AR, time, breathing glow, audio progress bar, Stop + Resume, dua text while it plays, back to the clock on end
   - Verify: `tests/dom/azanView.test.ts` and the full-day test asserts takeover appears and leaves at each azan
   - Files: `src/ui/azanView.ts`, `src/styles/views.css`, `tests/dom/azanView.test.ts`, `tests/dom/fullDay.test.ts`

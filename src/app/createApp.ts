@@ -20,6 +20,7 @@ import { createWakeLockManager, type WakeLockStatus } from '../core/wakeLock';
 import { applyTokens } from '../design/tokens';
 import { applyLocale, t } from '../i18n';
 import { loadSettings, saveSettings } from '../core/storage';
+import { mountAzanView } from '../ui/azanView';
 import { mountBackground } from '../ui/background';
 import { mountClockView } from '../ui/clockView';
 import { mountNextPrayerCard } from '../ui/nextPrayerCard';
@@ -148,6 +149,10 @@ export function createApp(deps: AppDeps): App {
   const nextCard = mountNextPrayerCard(layout.next);
   const timeline = mountTimeline(layout.timeline);
   const preAlert = mountPreAlert(main);
+  const azanView = mountAzanView(deps.root, {
+    onStop: () => app.stopAzan(),
+    position: () => audio.position(),
+  });
   const overlayView = mountOverlay(deps.root, {
     background: main,
     onStart: () => void app.tapStart(),
@@ -308,6 +313,7 @@ export function createApp(deps: AppDeps): App {
     nextCard.render(s);
     timeline.render(s);
     preAlert.render(s);
+    azanView.render(s);
   };
   store.subscribe(renderViews);
   renderViews(store.get());

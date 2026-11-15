@@ -20,5 +20,8 @@
   "location.missing": "No location set",
   "location.prompt": "Choose a location in settings to calculate prayer times",
   "azan.stop": "Stop",
-  "azan.time": "Time {time}"
+  "azan.time": "Time {time}",
+  "azan.label": "Time for prayer",
+  "dua.title": "Supplication after the azan",
+  "dua.text": "O Allah, Lord of this perfect call and of the prayer to be established, grant Muhammad the intercession and the excellence, and raise him to the praised station You have promised him."
 }
