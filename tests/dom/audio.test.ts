@@ -312,6 +312,33 @@ describe('healthCheck', () => {
     expect(t.player.calls.length).toBe(calls);
   });
 
+  it('does not replace an azan that is still starting (source loading)', async () => {
+    const t = setup({
+      ...defaultSettings,
+      azan: { ...defaultSettings.azan, audio: { ...defaultSettings.azan.audio, asr: 'user:a' } },
+    });
+    await t.blobs.set('a', new Blob(['x']));
+    await t.audio.unlock();
+    const pending = t.audio.playAzan('asr');
+    expect(await t.audio.healthCheck()).toBe(true);
+    await pending;
+    expect(t.player.src).toMatch(/^blob:/);
+    expect(t.audio.state().status).toBe('playing');
+  });
+
+  it('an unlock tap while an azan is starting does not replace it', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    t.player.holdNextPlay();
+    const pending = t.audio.playAzan('asr');
+    await flush();
+    expect(await t.audio.unlock()).toBe(true);
+    t.player.release();
+    await pending;
+    expect(t.player.src).toBe('/audio/rast.m4a');
+    expect(t.audio.state().status).toBe('playing');
+  });
+
   it('fails before the Start tap', async () => {
     expect(await setup().audio.healthCheck()).toBe(false);
   });

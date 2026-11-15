@@ -118,7 +118,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/core/audio.ts`, `src/adapters/media.ts`, `tests/dom/audio.test.ts`
   - Deps: 11, 14
 
-- [ ] **Task 16: Start overlay, health check, resume, pageshow** (M) — §7, §8.7
+- [x] **Task 16: Start overlay, health check, resume, pageshow** (M) — §7, §8.7
   - Acceptance: "Tap to Start" on launch; health check 3 min before each prayer; a `NotAllowedError` (or any error) shows the danger "Tap to enable azan" overlay (TR/EN/AR), and tapping it re-unlocks and hides it; `pageshow` persisted → start overlay; interrupted azan shows Resume; overlays trap focus and use `aria-live`
   - Verify: `tests/dom/overlays.test.ts` drives each path through `mountApp()`
   - Files: `src/ui/startOverlay.ts`, `src/app/createApp.ts`, `tests/dom/overlays.test.ts`

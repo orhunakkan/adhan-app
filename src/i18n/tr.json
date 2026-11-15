@@ -1,0 +1,8 @@
+{
+  "app.name": "Ezan Saati",
+  "start.tap": "Başlatmak için dokunun",
+  "start.hint": "Ezanın okunabilmesi için her yeniden başlatmadan sonra bir kez gerekli",
+  "enable.tap": "Ezanı etkinleştirmek için dokunun",
+  "enable.hint": "Ses iPad tarafından engellendi",
+  "azan.resume": "Ezana devam et"
+}

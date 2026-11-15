@@ -4,6 +4,7 @@ import { createApp, type App } from '../../src/app/createApp';
 import type { Location } from '../../src/core/prayerTimes';
 import { KEYS } from '../../src/core/storage';
 import { SCHAUMBURG } from './days';
+import { FakeChime } from './fakeChime';
 import { FakeClock } from './fakeClock';
 import { FakeMediaPlayer } from './fakeMediaPlayer';
 import { FakeWakeLock } from './fakeWakeLock';
@@ -29,6 +30,7 @@ export interface Mounted {
   store: MemoryStore;
   blobs: MemoryBlobStore;
   wakeLock: FakeWakeLock;
+  chime: FakeChime;
   /** Every player the app asked for, in order. The app must ask exactly once. */
   players: FakeMediaPlayer[];
   get player(): FakeMediaPlayer | undefined;
@@ -54,17 +56,21 @@ export function mountApp(opts: MountOptions = {}): Mounted {
   const blobs = opts.blobs ?? new MemoryBlobStore();
   const wakeLock = opts.wakeLock ?? new FakeWakeLock({ supported: false });
   const players: FakeMediaPlayer[] = [];
+  const chime = new FakeChime();
   const root = document.createElement('div');
   root.id = 'app';
   document.body.append(root);
   const app = createApp({
     root,
     doc: document,
+    win: window,
     clock,
     store,
     blobs,
     rng: seededRng(1),
     wakeLock,
+    chime,
+    objectUrls: { create: (b) => URL.createObjectURL(b), revoke: (u) => URL.revokeObjectURL(u) },
     createPlayer: () => {
       const p = new FakeMediaPlayer();
       players.push(p);
@@ -78,6 +84,7 @@ export function mountApp(opts: MountOptions = {}): Mounted {
     store,
     blobs,
     wakeLock,
+    chime,
     players,
     get player() {
       return players[0];
