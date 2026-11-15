@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AZAN_PRAYERS, type AzanPrayer } from '../../src/core/prayerTimes';
-import {
-  compareFiredKeys,
-  getDuePrayer,
-  getUpcoming,
-  parseFiredKey,
-} from '../../src/core/scheduler';
+import { getDuePrayer, getUpcoming, parseFiredKey, parseFiredList } from '../../src/core/scheduler';
 import { daysAround, ISNA, MIN, OSLO, plus, SEC } from '../helpers/days';
 
 const days = daysAround('2026-05-10');
@@ -20,7 +15,7 @@ const ALL_ON: Record<AzanPrayer, boolean> = {
 const LATE = 120 * SEC;
 
 const due = (now: Date, over: Partial<Parameters<typeof getDuePrayer>[0]> = {}) =>
-  getDuePrayer({ now, days, lastFired: null, enabled: ALL_ON, lateWindowMs: LATE, ...over });
+  getDuePrayer({ now, days, fired: [], enabled: ALL_ON, lateWindowMs: LATE, ...over });
 
 describe('getDuePrayer', () => {
   describe.each(AZAN_PRAYERS)('%s', (p) => {
@@ -37,7 +32,11 @@ describe('getDuePrayer', () => {
     });
 
     it('never fires the same key twice', () => {
-      expect(due(plus(today[p], 5 * SEC), { lastFired: `2026-05-10:${p}` })).toBeNull();
+      expect(
+        due(plus(today[p], 5 * SEC), {
+          fired: [{ key: `2026-05-10:${p}`, at: today[p].getTime() }],
+        }),
+      ).toBeNull();
     });
 
     it('is skipped when disabled', () => {
@@ -49,14 +48,12 @@ describe('getDuePrayer', () => {
     for (let s = 0; s <= 120; s += 10) expect(due(plus(today.sunrise, s * SEC))).toBeNull();
   });
 
-  it('does not fire an older prayer after a newer one has fired', () => {
-    expect(due(plus(today.asr, 10 * SEC), { lastFired: '2026-05-10:maghrib' })).toBeNull();
-    expect(due(plus(today.asr, 10 * SEC), { lastFired: '2026-05-11:fajr' })).toBeNull();
-  });
-
-  it('fires the next prayer after an older key', () => {
-    expect(due(plus(today.asr, 10 * SEC), { lastFired: '2026-05-10:dhuhr' })?.prayer).toBe('asr');
-    expect(due(plus(today.fajr, 10 * SEC), { lastFired: '2026-05-09:isha' })?.prayer).toBe('fajr');
+  it('is not blocked by other fired keys, older or newer', () => {
+    const fired = ['2026-05-10:dhuhr', '2026-05-10:maghrib', '2026-12-01:fajr'].map((key) => ({
+      key,
+      at: Number.NaN,
+    }));
+    expect(due(plus(today.asr, 10 * SEC), { fired })?.prayer).toBe('asr');
   });
 
   it("fires yesterday's Isha just after midnight when it falls after midnight", () => {
@@ -67,40 +64,38 @@ describe('getDuePrayer', () => {
     });
     const now = plus(oslo.yesterday.isha, 30 * SEC);
     expect(
-      getDuePrayer({
-        now,
-        days: oslo,
-        lastFired: '2026-06-20:maghrib',
-        enabled: ALL_ON,
-        lateWindowMs: LATE,
-      }),
-    ).toEqual({ prayer: 'isha', key: '2026-06-20:isha', at: oslo.yesterday.isha });
+      getDuePrayer({ now, days: oslo, fired: [], enabled: ALL_ON, lateWindowMs: LATE }),
+    ).toEqual({
+      prayer: 'isha',
+      key: '2026-06-20:isha',
+      at: oslo.yesterday.isha,
+    });
   });
 
-  it('fires only Fajr when Isha and Fajr coincide (high latitude), never Isha afterwards', () => {
+  it('returns coincident prayers one at a time, earliest key first', () => {
     const oslo = daysAround('2026-06-21', OSLO, { ...ISNA, method: 'MuslimWorldLeague' });
     expect(oslo.yesterday.isha).toEqual(oslo.today.fajr);
     const now = plus(oslo.today.fajr, 2 * SEC);
-    const first = getDuePrayer({
-      now,
-      days: oslo,
-      lastFired: '2026-06-20:maghrib',
-      enabled: ALL_ON,
-      lateWindowMs: LATE,
-    });
-    expect(first?.key).toBe('2026-06-21:fajr');
+    const input = { now, days: oslo, enabled: ALL_ON, lateWindowMs: LATE };
+    const first = getDuePrayer({ ...input, fired: [] });
+    expect(first?.key).toBe('2026-06-20:isha');
     const second = getDuePrayer({
-      now: plus(now, SEC),
-      days: oslo,
-      lastFired: first!.key,
-      enabled: ALL_ON,
-      lateWindowMs: LATE,
+      ...input,
+      fired: [{ key: first!.key, at: first!.at.getTime() }],
     });
-    expect(second).toBeNull();
+    expect(second?.key).toBe('2026-06-21:fajr');
+    const both = [first!, second!].map((e) => ({ key: e.key, at: e.at.getTime() }));
+    expect(getDuePrayer({ ...input, fired: both })).toBeNull();
   });
 
-  it('ignores a corrupt lastFired value', () => {
-    expect(due(plus(today.dhuhr, SEC), { lastFired: 'garbage' })?.prayer).toBe('dhuhr');
+  it('treats the same key hours apart as a different azan (location moved)', () => {
+    const fired = [{ key: '2026-05-10:asr', at: today.asr.getTime() - 8 * 60 * MIN }];
+    expect(due(plus(today.asr, SEC), { fired })?.prayer).toBe('asr');
+  });
+
+  it('treats the same key within an hour as the same azan (offset changed)', () => {
+    const fired = [{ key: '2026-05-10:asr', at: today.asr.getTime() - 25 * MIN }];
+    expect(due(plus(today.asr, SEC), { fired })).toBeNull();
   });
 
   it("does not fire yesterday's prayers on a new day", () => {
@@ -116,42 +111,48 @@ describe('fired keys', () => {
     expect(parseFiredKey(null)).toBeNull();
   });
 
-  it('orders by date, then by prayer order', () => {
-    expect(compareFiredKeys('2026-05-10:isha', '2026-05-11:fajr')).toBeLessThan(0);
-    expect(compareFiredKeys('2026-05-10:asr', '2026-05-10:dhuhr')).toBeGreaterThan(0);
-    expect(compareFiredKeys('2026-05-10:asr', '2026-05-10:asr')).toBe(0);
+  it.each([
+    [null, []],
+    ['2026-05-10:asr', [{ key: '2026-05-10:asr', at: Number.NaN }]],
+    [
+      '[{"key":"2026-05-10:asr","at":5},"2026-05-10:isha","junk",3,{"key":"x","at":1},{"key":"2026-05-10:fajr"}]',
+      [
+        { key: '2026-05-10:asr', at: 5 },
+        { key: '2026-05-10:isha', at: Number.NaN },
+      ],
+    ],
+    ['{"a":1}', []],
+    ['not json', []],
+  ])('parseFiredList(%j) → %j', (raw, list) => {
+    expect(parseFiredList(raw)).toEqual(list);
   });
 });
 
 describe('getUpcoming (pre-alert and health-check lead times)', () => {
   it.each([
-    ['11 min before', -11 * MIN, null],
-    ['10 min before', -10 * MIN, 'asr'],
-    ['1 s before', -SEC, 'asr'],
-    ['at the prayer', 0, null],
-  ])('with a 10 min lead, %s → %s', (_l, offset, prayer) => {
+    ['11 min before', -11 * MIN, []],
+    ['10 min before', -10 * MIN, ['asr']],
+    ['1 s before', -SEC, ['asr']],
+    ['at the prayer', 0, []],
+  ])('with a 10 min lead, %s → %j', (_l, offset, prayers) => {
     const r = getUpcoming({
       now: plus(today.asr, offset),
       days,
       enabled: ALL_ON,
       leadMs: 10 * MIN,
     });
-    expect(r?.prayer ?? null).toBe(prayer);
-    if (r) expect(r).toEqual({ prayer: 'asr', key: '2026-05-10:asr', at: today.asr });
+    expect(r.map((u) => u.prayer)).toEqual(prayers);
+    if (r.length) expect(r[0]).toEqual({ prayer: 'asr', key: '2026-05-10:asr', at: today.asr });
   });
 
   it('skips disabled prayers and sunrise', () => {
-    expect(
-      getUpcoming({
-        now: plus(today.asr, -MIN),
-        days,
-        enabled: { ...ALL_ON, asr: false },
-        leadMs: 10 * MIN,
-      }),
-    ).toBeNull();
+    const enabled = { ...ALL_ON, asr: false };
+    expect(getUpcoming({ now: plus(today.asr, -MIN), days, enabled, leadMs: 10 * MIN })).toEqual(
+      [],
+    );
     expect(
       getUpcoming({ now: plus(today.sunrise, -MIN), days, enabled: ALL_ON, leadMs: 10 * MIN }),
-    ).toBeNull();
+    ).toEqual([]);
   });
 
   it("finds tomorrow's Fajr late at night", () => {
@@ -161,6 +162,6 @@ describe('getUpcoming (pre-alert and health-check lead times)', () => {
       enabled: ALL_ON,
       leadMs: 3 * MIN,
     });
-    expect(r?.key).toBe('2026-05-11:fajr');
+    expect(r.map((u) => u.key)).toEqual(['2026-05-11:fajr']);
   });
 });

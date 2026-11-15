@@ -63,7 +63,7 @@ describe('scheduler loop', () => {
       expect(e.firedAt.getTime() - expected.getTime()).toBeGreaterThanOrEqual(0);
       expect(e.firedAt.getTime() - expected.getTime()).toBeLessThanOrEqual(1000);
     }
-    expect(h.store.get(KEYS.lastFired)).toBe('2026-05-11:isha');
+    expect(JSON.parse(h.store.get(KEYS.lastFired)!).at(-1).key).toBe('2026-05-11:isha');
   });
 
   it('does not repeat or burst after a mid-day reload', () => {
