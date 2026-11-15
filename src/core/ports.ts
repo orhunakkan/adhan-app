@@ -78,3 +78,8 @@ export interface ObjectUrls {
 export interface GeolocationPort {
   getPosition(): Promise<{ lat: number; lng: number }>;
 }
+
+/** Resizes an uploaded photo to <= 2048 px (long edge), JPEG ~0.85 (brief §9). */
+export interface PhotoProcessor {
+  resize(file: Blob): Promise<Blob>;
+}

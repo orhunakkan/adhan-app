@@ -96,5 +96,10 @@
   "about.storage": "التخزين المستخدم",
   "about.reset": "إعادة ضبط كل الإعدادات",
   "about.resetConfirm": "تأكيد إعادة الضبط",
-  "about.debug": "التشخيص"
+  "about.debug": "التشخيص",
+  "photos.add": "إضافة صور",
+  "photos.delete": "حذف",
+  "photos.empty": "لا توجد صور بعد",
+  "photos.count": "{n} صور",
+  "photos.item": "صورة {n}"
 }

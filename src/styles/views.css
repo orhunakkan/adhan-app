@@ -525,3 +525,52 @@
     inset-inline-start: var(--space-6);
   }
 }
+
+@layer views {
+  /* Photo slides: full-bleed with a slow Ken Burns zoom and a bottom scrim (brief §8.6). */
+  .photo {
+    overflow: hidden;
+  }
+
+  .photo__img {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    transform: scale(1);
+  }
+
+  .slide--in .photo__img {
+    animation: ken-burns 60s linear forwards;
+  }
+
+  .photo__scrim {
+    position: absolute;
+    inset: 40% 0 0;
+    background: linear-gradient(to bottom, transparent, rgb(0 0 0 / 65%));
+  }
+
+  .photos__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
+
+  .photos__item {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .photos__thumb {
+    inline-size: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+  }
+
+  @keyframes ken-burns {
+    to {
+      transform: scale(1.06);
+    }
+  }
+}
