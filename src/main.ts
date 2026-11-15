@@ -7,23 +7,34 @@ import { createAudioElementPlayer } from './adapters/media';
 import { mathRng } from './adapters/rng';
 import { createBrowserWakeLock } from './adapters/wakeLock';
 import { createApp } from './app/createApp';
+import './styles/base.css';
+import './styles/components.css';
 
 const root = document.getElementById('app');
 if (!root) throw new Error('#app root missing from index.html');
 
-createApp({
-  root,
-  doc: document,
-  win: window,
-  clock: browserClock,
-  store: createLocalStore(),
-  blobs: createIdbBlobStore(),
-  rng: mathRng,
-  createPlayer: () => createAudioElementPlayer(document),
-  chime: createWebAudioChime(window),
-  objectUrls: {
-    create: (blob) => URL.createObjectURL(blob),
-    revoke: (url) => URL.revokeObjectURL(url),
-  },
-  wakeLock: createBrowserWakeLock(navigator),
-});
+if (import.meta.env.DEV && location.pathname === '/styleguide') {
+  // Dev-only visual review surface; tree-shaken out of production builds.
+  void import('./ui/styleguide').then((m) => m.mountStyleguide(root));
+} else {
+  start(root);
+}
+
+function start(root: HTMLElement) {
+  createApp({
+    root,
+    doc: document,
+    win: window,
+    clock: browserClock,
+    store: createLocalStore(),
+    blobs: createIdbBlobStore(),
+    rng: mathRng,
+    createPlayer: () => createAudioElementPlayer(document),
+    chime: createWebAudioChime(window),
+    objectUrls: {
+      create: (blob) => URL.createObjectURL(blob),
+      revoke: (url) => URL.revokeObjectURL(url),
+    },
+    wakeLock: createBrowserWakeLock(navigator),
+  });
+}

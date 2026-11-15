@@ -1,0 +1,200 @@
+@layer components {
+  /* Cards: solid translucent surface is the primary design; blur is opt-in (brief §8.4). */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+  }
+
+  :root[data-glass] .glass {
+    backdrop-filter: blur(20px);
+  }
+
+  .touch-target {
+    min-block-size: 48px;
+    min-inline-size: 48px;
+  }
+
+  .pill-button {
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+    justify-content: center;
+    padding-inline: var(--space-5);
+    font-weight: 600;
+    color: var(--text-1);
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-pill);
+    transition: transform var(--dur-fast) var(--ease-out);
+
+    &:active {
+      transform: scale(0.97);
+    }
+
+    &.pill-button--accent {
+      color: var(--bg-1);
+      background: var(--accent);
+      border-color: transparent;
+    }
+  }
+
+  /* Overlays (brief §8.7). */
+  .overlay-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    pointer-events: none;
+
+    & > * {
+      pointer-events: auto;
+    }
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-6);
+    text-align: center;
+    background: rgb(5 8 18 / 82%);
+    animation: fade-in var(--dur-slow) var(--ease-out);
+  }
+
+  .overlay__title {
+    font-size: var(--type-next-name);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .overlay__hint,
+  .overlay__languages {
+    max-inline-size: 40ch;
+    font-size: var(--type-secondary);
+    color: var(--text-2);
+  }
+
+  .overlay__languages {
+    display: grid;
+    gap: var(--space-2);
+    font-weight: 600;
+    color: var(--danger-text);
+  }
+
+  .start-button {
+    position: relative;
+    display: grid;
+    place-items: center;
+    inline-size: clamp(12rem, 28vw, 18rem);
+    aspect-ratio: 1;
+    padding: var(--space-5);
+    font-size: var(--type-countdown);
+    font-weight: 600;
+    color: var(--bg-1);
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  .start-button__ring {
+    position: absolute;
+    inset: -12px;
+    border: 3px solid var(--accent);
+    border-radius: 50%;
+    opacity: 0.6;
+    animation: ring-pulse 2.4s var(--ease-out) infinite;
+  }
+
+  .start-button__label {
+    position: relative;
+  }
+
+  .start-button--danger {
+    color: var(--danger-text);
+    background: var(--danger);
+
+    & .start-button__ring {
+      border-color: var(--danger);
+      animation-duration: 1.2s;
+    }
+  }
+
+  .overlay--danger {
+    background: rgb(40 6 6 / 88%);
+  }
+
+  .resume-bar {
+    position: absolute;
+    inset-block-end: max(var(--space-6), env(safe-area-inset-bottom));
+    inset-inline: 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Toasts: bottom-centre pill (brief §8.7). */
+  .toast-region {
+    position: fixed;
+    inset-block-end: max(var(--space-6), env(safe-area-inset-bottom));
+    inset-inline: 0;
+    z-index: 60;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .toast {
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+    max-inline-size: min(90vw, 44rem);
+    padding-block: var(--space-3);
+    padding-inline: var(--space-5);
+    font-size: var(--type-secondary);
+    pointer-events: auto;
+    background: var(--bg-2);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-soft);
+    animation: slide-up var(--dur-base) var(--ease-out);
+  }
+
+  .toast__action {
+    padding-inline: var(--space-4);
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+
+  @keyframes ring-pulse {
+    0% {
+      opacity: 0.6;
+      transform: scale(0.96);
+    }
+
+    70% {
+      opacity: 0;
+      transform: scale(1.12);
+    }
+
+    100% {
+      opacity: 0;
+      transform: scale(1.12);
+    }
+  }
+}
