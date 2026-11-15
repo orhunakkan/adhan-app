@@ -1,5 +1,5 @@
 // Bundled city list (GeoNames, CC BY 4.0) for the Location settings search (brief §5).
-import { z } from 'zod';
+import { z } from '../config/zod';
 import type { Location } from './prayerTimes';
 
 export const citiesFileSchema = z.object({

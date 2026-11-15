@@ -1,7 +1,7 @@
 // zod schemas: the single source of truth for settings shape AND defaults
 // (brief §9 "Settings content"). Defaults live here so a stored object from an
 // older build that lacks a newly added field still parses.
-import { z } from 'zod';
+import { z } from './zod';
 import {
   AZAN_PRAYERS,
   CALCULATION_METHODS,

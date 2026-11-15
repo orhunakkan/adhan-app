@@ -5,25 +5,28 @@ import type { KeyValueStore } from '../core/ports';
  * (private browsing, storage full); failures become null reads / no-op writes
  * so a storage problem never takes the clock down.
  */
-export function createLocalStore(storage: Storage = window.localStorage): KeyValueStore {
+export function createLocalStore(storage?: Storage): KeyValueStore {
+  // Even reading `window.localStorage` can throw (SecurityError), so it is
+  // resolved inside each guarded call rather than as a default parameter.
+  const s = () => storage ?? window.localStorage;
   return {
     get(key) {
       try {
-        return storage.getItem(key);
+        return s().getItem(key);
       } catch {
         return null;
       }
     },
     set(key, value) {
       try {
-        storage.setItem(key, value);
+        s().setItem(key, value);
       } catch {
         // Quota or access error: keep running with in-memory state.
       }
     },
     remove(key) {
       try {
-        storage.removeItem(key);
+        s().removeItem(key);
       } catch {
         // Same as set().
       }

@@ -61,11 +61,30 @@ export function loadSettings(store: KeyValueStore, onError: OnStorageError = () 
     return defaultSettings;
   }
   const parsed = settingsSchema.safeParse(migrated);
-  if (!parsed.success) {
-    onError('Invalid settings; using defaults', parsed.error.issues);
-    return defaultSettings;
+  if (parsed.success) return parsed.data;
+  return salvageSettings(migrated, parsed.error.issues, onError);
+}
+
+/**
+ * Keeps every valid top-level section of otherwise-invalid settings and resets
+ * only the broken ones, so one bad value (say a theme name from a newer build)
+ * does not throw away the location, offsets and PIN.
+ */
+function salvageSettings(
+  raw: Record<string, unknown>,
+  issues: unknown,
+  onError: OnStorageError,
+): Settings {
+  let kept: Record<string, unknown> = { ...defaultSettings };
+  const reset: string[] = [];
+  for (const key of Object.keys(defaultSettings)) {
+    if (!(key in raw)) continue;
+    const candidate = { ...kept, [key]: raw[key] };
+    if (settingsSchema.safeParse(candidate).success) kept = candidate;
+    else reset.push(key);
   }
-  return parsed.data;
+  onError(`Invalid settings; reset ${reset.join(', ') || 'nothing'} to defaults`, issues);
+  return settingsSchema.parse(kept);
 }
 
 /** Validates before writing; throws on invalid settings so the UI can reject the change. */
