@@ -70,7 +70,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/core/period.ts`, `src/core/updateGate.ts`, `tests/core/period.test.ts`, `tests/core/updateGate.test.ts`
   - Deps: 7
 
-- [ ] **Task 10: Night dim and burn-in offset** (S) — §9
+- [x] **Task 10: Night dim and burn-in offset** (S) — §9
   - Acceptance: `nightDimState(now, times, {afterIshaMin, beforeFajrMin, opacity})` handles the cross-midnight window and lifts 1 min before and during an azan; `burnInOffset(now, rng)` returns ±8 px values that change only on 10-minute boundaries
   - Verify: table tests plus a seeded-RNG test over 24 h of 1-minute steps
   - Files: `src/core/nightDim.ts`, `src/core/burnIn.ts`, `tests/core/nightDim.test.ts`, `tests/core/burnIn.test.ts`
