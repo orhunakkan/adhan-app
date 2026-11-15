@@ -9,7 +9,8 @@ import { h, toggleClass } from '../dom';
 
 export const LONG_PRESS_MS = 3000;
 
-export type SectionId = 'location' | 'calculation' | 'azan' | 'display' | 'photos' | 'about';
+export type SectionId =
+  'location' | 'calculation' | 'azan' | 'display' | 'photos' | 'about' | 'debug';
 
 export interface SettingsServices {
   geolocation: GeolocationPort;
@@ -34,11 +35,15 @@ export interface SettingsContext {
   lang: Lang;
   /** Re-render the current pane (e.g. after an async upload). */
   refresh(): void;
+  /** Opens another section (e.g. About → Diagnostics). */
+  navigate(id: SectionId): void;
   toast(message: string): void;
 }
 
 export interface SettingsSection {
   id: SectionId;
+  /** Not listed in the sidebar (reached from another section, e.g. Diagnostics). */
+  hidden?: boolean;
   render(pane: HTMLElement, ctx: SettingsContext): void;
 }
 
@@ -100,6 +105,11 @@ export function mountSettings(
     state: deps.app.state(),
     lang: lang(),
     refresh: () => draw(true),
+    navigate: (id) => {
+      current = id;
+      drilled = true;
+      draw(true);
+    },
     toast: deps.toast,
   });
 
@@ -158,7 +168,11 @@ export function mountSettings(
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-modal', 'true');
     const header = h('header', 'settings__header');
-    const title = h('h2', 'settings__title', tr('settings.title'));
+    const title = h(
+      'h2',
+      'settings__title',
+      tr(current === 'debug' ? 'debug.title' : 'settings.title'),
+    );
     title.id = 'settings-title';
     el.setAttribute('aria-labelledby', title.id);
     const back = h('button', 'pill-button touch-target settings__back', tr('settings.back'));
@@ -175,6 +189,7 @@ export function mountSettings(
     const nav = h('nav', 'settings__nav');
     const list = h('ul', 'settings__sections');
     for (const s of deps.sections) {
+      if (s.hidden) continue;
       const li = h('li');
       const b = h('button', 'settings__section touch-target', tr(`section.${s.id}`));
       b.type = 'button';

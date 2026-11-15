@@ -104,5 +104,16 @@
   "photos.item": "صورة {n}",
   "update.available": "يتوفر تحديث",
   "update.apply": "تطبيق",
-  "update.blocked": "وقت الصلاة قريب؛ طبّقه بعد {time}"
+  "update.blocked": "وقت الصلاة قريب؛ طبّقه بعد {time}",
+  "debug.title": "التشخيص",
+  "debug.sw": "عامل الخدمة",
+  "debug.wakeLock": "قفل الشاشة",
+  "debug.audio": "الصوت",
+  "debug.health": "آخر فحص للصوت",
+  "debug.lastFired": "آخر أذان",
+  "debug.reloads": "مرات إعادة التحميل",
+  "debug.period": "الوقت / السمة",
+  "debug.log": "السجل",
+  "debug.none": "—",
+  "section.debug": "التشخيص"
 }

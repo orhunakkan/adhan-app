@@ -38,7 +38,9 @@ export const aboutSection: SettingsSection = {
       ctx.toast(t(defaultSettings.display.language, 'settings.saved'));
     });
     reset.dataset.key = 'reset';
-    danger.body.append(reset);
+    const debug = actionButton(t(lang, 'about.debug'), () => ctx.navigate('debug'));
+    debug.dataset.key = 'debug';
+    danger.body.append(debug, reset);
     pane.append(danger.el);
   },
 };
