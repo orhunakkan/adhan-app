@@ -94,7 +94,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/config/schema.ts`, `src/config/defaults.ts`, `src/core/storage.ts`, `tests/core/storage.test.ts`, `tests/types/settings.test-d.ts`
   - Deps: 3
 
-- [ ] **Task 12: Logger ring buffer** (XS) — §14
+- [x] **Task 12: Logger ring buffer** (XS) — §14
   - Acceptance: `createLogger(store, clock)` keeps the last 100 entries, persists them, survives corrupt storage
   - Verify: `tests/core/logger.test.ts`
   - Files: `src/core/logger.ts`, `tests/core/logger.test.ts`
