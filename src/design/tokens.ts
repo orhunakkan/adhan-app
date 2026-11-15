@@ -27,7 +27,7 @@ export const themes: Record<ThemeName, ThemeTokens> = {
     surface: 'rgba(255, 255, 255, 0.08)',
     surfaceBorder: 'rgba(255, 255, 255, 0.12)',
     text1: '#EEF2F8',
-    text2: '#A6B1C6',
+    text2: '#B4BED3',
     accent: '#4FD1C5',
     accentSoft: 'rgba(79, 209, 197, 0.16)',
     danger: '#B42318',

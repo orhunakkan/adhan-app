@@ -214,8 +214,13 @@
     color: var(--text-2);
   }
 
+  /* Dimmed by colour, not opacity: text stays >= 4.5:1 (tests/core/tokens.test.ts). */
   .chip--past {
-    opacity: 0.45;
+    color: var(--text-2);
+
+    & .icon {
+      opacity: 0.5;
+    }
   }
 
   .chip--current {

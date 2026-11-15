@@ -74,8 +74,9 @@ describe('settings PIN', () => {
     expect(q('.settings')).not.toBeNull();
   });
 
-  it('closes and re-locks after 2 minutes without a touch', () => {
+  it('closes and re-locks after 2 minutes without a touch', async () => {
     m = mountApp({ start: START });
+    await m.app.tapStart(); // otherwise the start overlay keeps the main screen inert
     openSettings(m);
     m.clock.advanceBy(SETTINGS_IDLE_MS - 1000);
     q('.settings')!.dispatchEvent(new Event('pointerdown', { bubbles: true })); // activity

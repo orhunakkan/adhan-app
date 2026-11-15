@@ -246,7 +246,6 @@ export function createApp(deps: AppDeps): App {
     position: () => audio.position(),
   });
   const overlayView = mountOverlay(deps.root, {
-    background: main,
     onStart: () => void app.tapStart(),
     onEnable: () => void app.tapStart(),
     onResume: () => void app.resume(),
@@ -634,7 +633,6 @@ export function createApp(deps: AppDeps): App {
       },
       revokeUrl: (url) => deps.objectUrls.revoke(url),
     },
-    background: main,
     matchMedia: (q) => deps.win.matchMedia(q),
     toast: (message) => toast.show({ message }),
   });

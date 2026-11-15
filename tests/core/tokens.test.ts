@@ -38,6 +38,12 @@ describe.each(THEME_NAMES)('theme %s contrast (WCAG)', (theme) => {
     }
   });
 
+  it('secondary text ≥ 4.5:1 on a card surface (past chips, labels at normal size)', () => {
+    for (const bg of backgrounds(theme)) {
+      expect(contrast(t.text2, composite(t.surface, bg)), bg).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it('accent ≥ 3:1 on a card surface over every background', () => {
     for (const bg of backgrounds(theme)) {
       expect(contrast(t.accent, composite(t.surface, bg)), bg).toBeGreaterThanOrEqual(3);
@@ -127,5 +133,26 @@ describe('cssVariables', () => {
 
   it("motion durations are the brief's 150 / 300 / 600 ms", () => {
     expect(motion.durations).toEqual({ fast: 150, base: 300, slow: 600 });
+  });
+});
+
+describe('effective contrast in the stylesheet', () => {
+  it('never dims text-bearing chips or cards with opacity (it would break the ratios above)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const postcss = (await import('postcss')).default;
+    const css = readFileSync(
+      join(import.meta.dirname, '..', '..', 'src', 'styles', 'views.css'),
+      'utf8',
+    );
+    const offenders: string[] = [];
+    postcss.parse(css).walkDecls('opacity', (d) => {
+      const rule = d.parent as { selector?: string };
+      const sel = rule.selector ?? '';
+      const value = Number(d.value);
+      if (/\.chip(--[a-z]+)?$|\.chip__(name|time)|\.next-card|\.clock__/.test(sel) && value < 1)
+        offenders.push(`${sel} { opacity: ${d.value} }`);
+    });
+    expect(offenders).toEqual([]);
   });
 });
