@@ -10,7 +10,7 @@ import {
 } from '../../core/prayerTimes';
 import { prayerName, t } from '../../i18n';
 import { group, segmented, select, stepper } from './controls';
-import type { SettingsContext, SettingsSection } from './shell';
+import { updateSettingsOrToast, type SettingsContext, type SettingsSection } from './shell';
 
 /** Proper names of the adhan-js methods (not translated). */
 export const METHOD_LABELS: Record<CalculationMethodName, string> = {
@@ -28,13 +28,8 @@ export const METHOD_LABELS: Record<CalculationMethodName, string> = {
   Turkey: 'Diyanet (Türkiye)',
 };
 
-function update(ctx: SettingsContext, calc: Settings['calc']) {
-  try {
-    ctx.app.updateSettings({ calc });
-  } catch {
-    ctx.toast(t(ctx.lang, 'settings.invalid'));
-  }
-}
+const update = (ctx: SettingsContext, calc: Settings['calc']) =>
+  updateSettingsOrToast(ctx, { calc });
 
 export const calculationSection: SettingsSection = {
   id: 'calculation',

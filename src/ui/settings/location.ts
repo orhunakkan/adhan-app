@@ -4,7 +4,7 @@ import { cityLabel, searchCities, type City } from '../../core/cities';
 import type { Location } from '../../core/prayerTimes';
 import { t } from '../../i18n';
 import { h } from '../dom';
-import { actionButton, group } from './controls';
+import { actionButton, field, group } from './controls';
 import type { SettingsContext, SettingsSection } from './shell';
 
 const EARTH_KM = 6371;
@@ -45,12 +45,6 @@ function apply(ctx: SettingsContext, location: Location): boolean {
     ctx.toast(t(ctx.lang, 'settings.invalid'));
     return false;
   }
-}
-
-function field(label: string, input: HTMLInputElement | HTMLSelectElement): HTMLElement {
-  const row = h('label', 'row');
-  row.append(h('span', 'row__label', label), input);
-  return row;
 }
 
 export const locationSection: SettingsSection = {

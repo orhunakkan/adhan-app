@@ -76,9 +76,7 @@ export function mountAzanView(
         setText(duaText, t(lang, 'dua.text'));
       }
       setText(stop, t(lang, 'azan.stop'));
-      if (progress.getAttribute('aria-label') !== t(lang, 'azan.progress')) {
-        progress.setAttribute('aria-label', t(lang, 'azan.progress'));
-      }
+      setAttr(progress, 'aria-label', t(lang, 'azan.progress'));
       const { current, duration } = deps.position();
       const pct = duration > 0 ? Math.min(100, Math.round((current / duration) * 100)) : 0;
       if (pct !== lastPct) {
