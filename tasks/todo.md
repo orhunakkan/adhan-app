@@ -131,8 +131,12 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Deps: 14
 
 ### Checkpoint 3: Azan path proven
-- [ ] `npm run ci` green; `doubt-driven-development` review of tasks 13–15 done, findings fixed or recorded
-- [ ] A `mountApp()` full-day run fires 5 azans through FakeMediaPlayer with the right sources
+- [x] `npm run ci` green; `doubt-driven-development` review of tasks 13–15 done, findings fixed or recorded
+  - 3 cycles (scheduler ×2, audio ×2, end to end ×1); every Critical fixed with a regression test
+  - Accepted: polar-night locations beyond ~71°N; two tabs; a stalled stream bounded by the 20 min cap;
+    same-day location change suppresses a prayer that already played; a blocked moment stays up to the cap
+  - Cross-model second opinion: skipped in the autonomous run (offered to the owner at the end)
+- [x] A `mountApp()` full-day run fires 5 azans through FakeMediaPlayer with the right sources
 
 ---
 
