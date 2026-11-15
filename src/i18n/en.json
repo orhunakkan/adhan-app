@@ -6,5 +6,19 @@
   "enable.hint": "Sound was blocked by the iPad",
   "azan.resume": "Resume azan",
   "wake.hint": "Keep the screen on: Settings → Display & Brightness → Auto-Lock → Never, and the same in Guided Access",
-  "toast.dismiss": "Dismiss"
+  "toast.dismiss": "Dismiss",
+  "prayer.fajr": "Fajr",
+  "prayer.sunrise": "Sunrise",
+  "prayer.dhuhr": "Dhuhr",
+  "prayer.asr": "Asr",
+  "prayer.maghrib": "Maghrib",
+  "prayer.isha": "Isha",
+  "clock.next": "Next prayer",
+  "clock.remaining": "remaining",
+  "clock.in": "until {prayer}",
+  "prealert.text": "{prayer} in {n} min",
+  "location.missing": "No location set",
+  "location.prompt": "Choose a location in settings to calculate prayer times",
+  "azan.stop": "Stop",
+  "azan.time": "Time {time}"
 }

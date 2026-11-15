@@ -2,6 +2,7 @@
 import ar from './ar.json';
 import en from './en.json';
 import tr from './tr.json';
+import type { PrayerName } from '../core/prayerTimes';
 
 export const LANGS = ['tr', 'en', 'ar'] as const;
 export type Lang = (typeof LANGS)[number];
@@ -16,4 +17,14 @@ export function t(lang: Lang, key: MessageKey, vars: Record<string, string | num
   return MESSAGES[lang][key].replace(/\{(\w+)\}/g, (m, name: string) =>
     name in vars ? String(vars[name]) : m,
   );
+}
+
+export function prayerName(lang: Lang, prayer: PrayerName): string {
+  return t(lang, `prayer.${prayer}`);
+}
+
+/** Sets lang/dir on <html> so logical CSS properties mirror for Arabic. */
+export function applyLocale(doc: Document, lang: Lang): void {
+  doc.documentElement.lang = lang;
+  doc.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
 }
