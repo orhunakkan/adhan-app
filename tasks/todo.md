@@ -160,7 +160,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `public/fonts/*`, `src/styles/base.css`, `src/styles/components.css`, `src/ui/styleguide.ts`, `index.html`
   - Deps: 18
 
-- [ ] **Task 21: Clock view** (M) — §8.4, §8.2
+- [x] **Task 21: Clock view** (M) — §8.4, §8.2
   - Acceptance: large clock (12/24 h, optional seconds, text-only updates), Gregorian + Hijri date, location; landscape 60/40 and portrait stacked via media-query classes
   - Verify: `tests/dom/clockView.test.ts` with `toMatchFileSnapshot` for landscape/portrait; seconds-toggle and format tests; the render-per-tick path doesn't recreate nodes (node identity assertion)
   - Files: `src/ui/clockView.ts`, `src/styles/views.css`, `tests/dom/clockView.test.ts`

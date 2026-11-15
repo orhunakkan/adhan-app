@@ -20,6 +20,8 @@ import { createWakeLockManager, type WakeLockStatus } from '../core/wakeLock';
 import { applyTokens } from '../design/tokens';
 import { applyLocale, t } from '../i18n';
 import { loadSettings, saveSettings } from '../core/storage';
+import { mountClockView } from '../ui/clockView';
+import { mountLayout } from '../ui/layout';
 import { mountOverlay, type OverlayKind } from '../ui/startOverlay';
 import { mountToast } from '../ui/toast';
 import { createStore } from './store';
@@ -28,7 +30,7 @@ export interface AppDeps {
   root: HTMLElement;
   doc: Document;
   /** Window-level events (pageshow). */
-  win: Pick<Window, 'addEventListener' | 'removeEventListener'>;
+  win: Pick<Window, 'addEventListener' | 'removeEventListener' | 'matchMedia'>;
   clock: Clock;
   store: KeyValueStore;
   blobs: BlobStore;
@@ -133,6 +135,8 @@ export function createApp(deps: AppDeps): App {
   const main = deps.doc.createElement('div');
   main.className = 'app-main';
   deps.root.append(main);
+  const layout = mountLayout(main, (q) => deps.win.matchMedia(q));
+  const clockView = mountClockView(layout.clock);
   const overlayView = mountOverlay(deps.root, {
     background: main,
     onStart: () => void app.tapStart(),
@@ -281,6 +285,9 @@ export function createApp(deps: AppDeps): App {
     overlayView.render({ overlay: s.overlay, lang: s.settings.display.language }),
   );
   overlayView.render({ overlay: 'start', lang: settings.display.language });
+  const renderViews = (s: AppState) => clockView.render(s);
+  store.subscribe(renderViews);
+  renderViews(store.get());
 
   const app: App = {
     state: () => store.get(),
@@ -333,6 +340,7 @@ export function createApp(deps: AppDeps): App {
     dispose() {
       scheduler.stop();
       overlayView.destroy();
+      layout.destroy();
       toast.destroy();
       main.remove();
       deps.doc.removeEventListener('visibilitychange', onVisibility);

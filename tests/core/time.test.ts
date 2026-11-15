@@ -5,6 +5,7 @@ import {
   formatDate,
   formatTime,
   parseDateKey,
+  timeParts,
   zonedParts,
 } from '../../src/core/time';
 
@@ -125,5 +126,30 @@ describe('daylight-saving transitions', () => {
         }),
       ).toBe('12:00');
     }
+  });
+});
+
+describe('timeParts', () => {
+  const d = new Date('2026-07-15T18:05:09Z');
+  it.each([
+    [
+      { tz: 'Europe/Istanbul', hour12: false, seconds: true, locale: 'tr' },
+      { hm: '21:05', seconds: '09', dayPeriod: '' },
+    ],
+    [
+      { tz: 'America/Chicago', hour12: true, seconds: false, locale: 'en' },
+      { hm: '1:05', seconds: '', dayPeriod: 'PM' },
+    ],
+    [
+      { tz: 'Asia/Riyadh', hour12: false, seconds: false, locale: 'ar-u-nu-arab' },
+      { hm: '٢١:٠٥', seconds: '', dayPeriod: '' },
+    ],
+  ])('%j', (f, parts) => {
+    expect(timeParts(d, f)).toEqual(parts);
+  });
+
+  it('reuses formatters', () => {
+    const f = { tz: 'UTC', hour12: false, seconds: false, locale: 'en' };
+    expect(timeParts(d, f)).toEqual(timeParts(d, f));
   });
 });

@@ -9,6 +9,7 @@ import { createBrowserWakeLock } from './adapters/wakeLock';
 import { createApp } from './app/createApp';
 import './styles/base.css';
 import './styles/components.css';
+import './styles/views.css';
 
 const root = document.getElementById('app');
 if (!root) throw new Error('#app root missing from index.html');
