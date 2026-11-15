@@ -172,7 +172,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/ui/progressRing.ts`, `src/ui/nextPrayerCard.ts`, `src/ui/timeline.ts`, `tests/dom/progressRing.test.ts`, `tests/dom/timeline.test.ts`
   - Deps: 21
 
-- [ ] **Task 23: Living background + full-day UI simulation** (S) — §8.1, §8.3, §13.6
+- [x] **Task 23: Living background + full-day UI simulation** (S) — §8.1, §8.3, §13.6
   - Acceptance: two stacked gradient layers crossfading over about 60 s by opacity; `data-period` on `<html>`; optional geometric SVG pattern at 3–6% opacity; theme switch updates `data-theme` + vars
   - Verify: `tests/dom/fullDay.test.ts`: 00:00→23:59 in Schaumburg, checking chip states, next-prayer card, countdown and `data-period` changes at each prayer
   - Files: `src/ui/background.ts`, `public/patterns/*.svg`, `tests/dom/fullDay.test.ts`, `tests/dom/themes.test.ts`

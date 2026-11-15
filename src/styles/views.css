@@ -258,3 +258,44 @@
     }
   }
 }
+
+@layer views {
+  .sky {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: var(--bg-1);
+  }
+
+  .sky__layer {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 60s linear; /* period crossfade (brief §8.3) */
+  }
+
+  .sky__layer--visible {
+    opacity: 1;
+  }
+
+  .sky__pattern {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    background-image: url('/patterns/star8.svg');
+    background-size: 120px 120px;
+  }
+
+  .sky__pattern--on {
+    opacity: 0.04;
+  }
+
+  :root[data-theme='sand'] .sky__pattern--on {
+    opacity: 0.06;
+    filter: invert(1);
+  }
+
+  .reduced-motion .sky__layer {
+    transition-duration: 1ms;
+  }
+}
