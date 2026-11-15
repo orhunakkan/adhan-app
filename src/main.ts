@@ -11,6 +11,7 @@ import { createServiceWorker } from './adapters/sw';
 import { createBrowserWakeLock } from './adapters/wakeLock';
 import { createApp } from './app/createApp';
 import { parseCities } from './core/cities';
+import { mountDiagnostics } from './ui/diagnostics';
 import './styles/base.css';
 import './styles/components.css';
 import './styles/views.css';
@@ -22,7 +23,20 @@ if (import.meta.env.DEV && location.pathname === '/styleguide') {
   // Dev-only visual review surface; tree-shaken out of production builds.
   void import('./ui/styleguide').then((m) => m.mountStyleguide(root));
 } else {
-  start(root);
+  // `?diag`: an on-screen panel for debugging on the iPad without a Mac.
+  const diag = new URLSearchParams(location.search).has('diag')
+    ? mountDiagnostics(document, window)
+    : null;
+  try {
+    start(root);
+  } catch (err) {
+    diag?.record(`start failed: ${String(err)}`);
+    throw err;
+  }
+  if (diag) {
+    diag.update();
+    setInterval(() => diag.update(), 1000);
+  }
 }
 
 function start(root: HTMLElement) {
