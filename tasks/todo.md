@@ -192,7 +192,7 @@ The standard verification for every task (on top of its own checks) is: the new 
 
 ## Phase 5: Settings
 
-- [ ] **Task 25: Settings shell, long-press, PIN, controls** (M) — §8.8, §9 Settings
+- [x] **Task 25: Settings shell, long-press, PIN, controls** (M) — §8.8, §9 Settings
   - Acceptance: 3 s corner long-press opens a sheet; optional 4-digit PIN gate; sidebar (landscape) / drill-down (portrait); toggle, segmented, stepper and list primitives with accessible names and ≥ 48 px targets
   - Verify: `tests/dom/settingsShell.test.ts` (long-press timing with fake timers, PIN right/wrong, a11y checks)
   - Files: `src/ui/settings/shell.ts`, `src/ui/settings/controls.ts`, `src/styles/components.css`, `tests/dom/settingsShell.test.ts`

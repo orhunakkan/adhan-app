@@ -25,6 +25,8 @@ import { mountBackground } from '../ui/background';
 import { mountClockView } from '../ui/clockView';
 import { mountNextPrayerCard } from '../ui/nextPrayerCard';
 import { mountPreAlert } from '../ui/preAlert';
+import { aboutSection } from '../ui/settings/about';
+import { mountSettings, type SettingsView } from '../ui/settings/shell';
 import { mountTimeline } from '../ui/timeline';
 import { mountLayout } from '../ui/layout';
 import { mountOverlay, type OverlayKind } from '../ui/startOverlay';
@@ -307,6 +309,8 @@ export function createApp(deps: AppDeps): App {
     overlayView.render({ overlay: s.overlay, lang: s.settings.display.language }),
   );
   overlayView.render({ overlay: 'start', lang: settings.display.language });
+  // Assigned after `app` exists (the settings sheet drives it); renders skip it until then.
+  const late: { settings?: SettingsView } = {};
   const renderViews = (s: AppState) => {
     background.render(s);
     clockView.render(s);
@@ -314,6 +318,7 @@ export function createApp(deps: AppDeps): App {
     timeline.render(s);
     preAlert.render(s);
     azanView.render(s);
+    late.settings?.render(s);
   };
   store.subscribe(renderViews);
   renderViews(store.get());
@@ -368,6 +373,7 @@ export function createApp(deps: AppDeps): App {
     log,
     dispose() {
       scheduler.stop();
+      late.settings?.destroy();
       overlayView.destroy();
       layout.destroy();
       toast.destroy();
@@ -376,6 +382,15 @@ export function createApp(deps: AppDeps): App {
       deps.win.removeEventListener('pageshow', onPageShow);
     },
   };
+
+  late.settings = mountSettings(deps.root, {
+    app,
+    clock: deps.clock,
+    sections: [aboutSection],
+    background: main,
+    matchMedia: (q) => deps.win.matchMedia(q),
+    toast: (message) => toast.show({ message }),
+  });
 
   scheduler.start();
   log.info('app started');

@@ -23,5 +23,19 @@
   "azan.time": "Time {time}",
   "azan.label": "Time for prayer",
   "dua.title": "Supplication after the azan",
-  "dua.text": "O Allah, Lord of this perfect call and of the prayer to be established, grant Muhammad the intercession and the excellence, and raise him to the praised station You have promised him."
+  "dua.text": "O Allah, Lord of this perfect call and of the prayer to be established, grant Muhammad the intercession and the excellence, and raise him to the praised station You have promised him.",
+  "settings.title": "Settings",
+  "settings.close": "Close",
+  "settings.back": "Back",
+  "settings.saved": "Saved",
+  "settings.invalid": "Invalid value",
+  "pin.title": "Enter PIN",
+  "pin.wrong": "Wrong PIN",
+  "pin.delete": "Delete",
+  "section.location": "Location",
+  "section.calculation": "Calculation",
+  "section.azan": "Azan",
+  "section.display": "Display",
+  "section.photos": "Photos",
+  "section.about": "About"
 }
