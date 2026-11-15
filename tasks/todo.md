@@ -14,7 +14,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `package.json`, `vite.config.ts`, `tsconfig.json`, `index.html`, `src/main.ts`, `.gitignore`, `LICENSE`
   - Deps: none
 
-- [ ] **Task 2: Lint, format and compat guards** (S) — §2, §16
+- [x] **Task 2: Lint, format and compat guards** (S) — §2, §16
   - Acceptance: ESLint flat config with `eslint-plugin-compat`, `no-restricted-globals`/`no-restricted-syntax` for `Date.now`, argless `new Date`, `setInterval`, `Math.random`, `localStorage`, `indexedDB`, `navigator.wakeLock`, `new Audio` (exempting `main.ts`, `src/adapters/**`, `tests/**`) and a regex-lookbehind ban; Stylelint with `stylelint-no-unsupported-browser-features` (ignore `css-nesting`); Prettier
   - Verify: `npm run lint` passes; `tests/core/lintRules.test.ts` runs the ESLint Node API on fixture snippets and asserts each banned construct is reported in `src/` but allowed in adapters
   - Files: `eslint.config.js`, `.stylelintrc.json`, `.prettierrc`, `tests/core/lintRules.test.ts`, `package.json`

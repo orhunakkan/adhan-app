@@ -15,7 +15,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "lint": "eslint . && stylelint \"src/**/*.css\" && prettier --check .",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "adhan": "^4.4.6",
@@ -23,10 +25,23 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^24.19.2",
     "browserslist": "^4.29.5",
+    "eslint": "^10.15.0",
+    "eslint-plugin-compat": "^7.0.2",
+    "globals": "^17.14.0",
     "lightningcss": "^1.33.0",
+    "prettier": "^3.10.1",
+    "stylelint": "^18.0.0",
+    "stylelint-config-standard": "^41.0.0",
+    "stylelint-no-unsupported-browser-features": "^8.1.2",
     "typescript": "~6.0.3",
-    "vite": "^8.3.8"
+    "typescript-eslint": "^8.72.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1"
   }
 }
