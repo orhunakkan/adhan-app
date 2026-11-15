@@ -19,6 +19,7 @@
   "prealert.text": "{prayer} in {n} min",
   "location.missing": "No location set",
   "location.prompt": "Choose a location in settings to calculate prayer times",
+  "location.set": "Set location",
   "azan.stop": "Stop",
   "azan.time": "Time {time}",
   "azan.label": "Time for prayer",

@@ -93,6 +93,10 @@
     max-inline-size: 32ch;
     color: var(--accent);
   }
+
+  .clock__set-location {
+    margin-block-start: var(--space-4);
+  }
 }
 
 @layer views {

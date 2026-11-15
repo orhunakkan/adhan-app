@@ -67,7 +67,8 @@ export interface SettingsSection {
 }
 
 export interface SettingsView {
-  open(): void;
+  /** Opens the sheet, optionally straight at one section (after the PIN, if set). */
+  open(section?: SectionId): void;
   close(): void;
   isOpen(): boolean;
   render(s: AppState): void;
@@ -300,10 +301,11 @@ export function mountSettings(
   };
 
   const view: SettingsView = {
-    open() {
+    open(section) {
       open = true;
       unlocked = deps.app.state().settings.pin === null;
-      drilled = false;
+      drilled = section !== undefined;
+      if (section) current = section;
       layer.hidden = false;
       restoreInert = openModal(root, layer);
       lastKey = undefined;

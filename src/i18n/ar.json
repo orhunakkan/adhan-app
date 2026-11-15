@@ -19,6 +19,7 @@
   "prealert.text": "{prayer} بعد {n} د",
   "location.missing": "لم يتم تحديد الموقع",
   "location.prompt": "اختر موقعًا في الإعدادات لحساب أوقات الصلاة",
+  "location.set": "تحديد الموقع",
   "azan.stop": "إيقاف",
   "azan.time": "الوقت {time}",
   "azan.label": "حان وقت الصلاة",
