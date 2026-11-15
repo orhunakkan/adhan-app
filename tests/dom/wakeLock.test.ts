@@ -68,4 +68,23 @@ describe('wake lock (progressive enhancement)', () => {
     await flush();
     expect(wakeLock.requests).toBe(1);
   });
+
+  it('asks for persistent storage once after the first Start tap, and logs the answer', async () => {
+    let calls = 0;
+    m = mountApp({ start: START, persistStorage: () => (calls++, Promise.resolve(true)) });
+    await m.app.tapStart();
+    await m.app.tapStart();
+    await flush();
+    expect(calls).toBe(1);
+    expect(m.app.log.entries().some((e) => e.msg === 'persistent storage')).toBe(true);
+  });
+
+  it('logs a failed persistent storage request', async () => {
+    m = mountApp({ start: START, persistStorage: () => Promise.reject(new Error('nope')) });
+    await m.app.tapStart();
+    await flush();
+    expect(m.app.log.entries().some((e) => e.msg === 'persistent storage request failed')).toBe(
+      true,
+    );
+  });
 });

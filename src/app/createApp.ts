@@ -67,6 +67,8 @@ export interface AppDeps {
   /** Fetches public/panels/panels.json (validated here). */
   loadPanels: () => Promise<unknown>;
   photoProcessor: PhotoProcessor;
+  /** navigator.storage.persist, when the browser has it (iOS 15.2+); asked once after Start. */
+  persistStorage?: () => Promise<boolean>;
 }
 
 export interface ActiveAzan {
@@ -153,6 +155,16 @@ export function createApp(deps: AppDeps): App {
   );
   const queue: PrayerEvent[] = [];
   let uploads = 0;
+  let persistAsked = false;
+  /** Keeps uploads and settings from being evicted (brief §11); asked once. */
+  const requestPersistence = () => {
+    if (!deps.persistStorage || persistAsked) return;
+    persistAsked = true;
+    deps.persistStorage().then(
+      (granted) => log.info('persistent storage', { granted }),
+      (err: unknown) => log.warn('persistent storage request failed', String(err)),
+    );
+  };
   /** When the current azan moment appeared (checked on every tick, no long timers). */
   let azanShownAt = 0;
   /** Audio was asked to play the current azan moment. */
@@ -410,6 +422,7 @@ export function createApp(deps: AppDeps): App {
           setOverlay();
           log.info('audio unlocked');
           void wakeLock.acquire();
+          requestPersistence();
           const current = store.get().azan;
           if (!current || audio.state().status === 'playing') return;
           if (deps.clock.now().getTime() - current.at.getTime() <= REPLAY_WINDOW_MS) {
