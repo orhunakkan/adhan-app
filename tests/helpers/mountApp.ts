@@ -1,6 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { defaultSettings } from '../../src/config/defaults';
 import type { Settings } from '../../src/config/schema';
 import { createApp, type App } from '../../src/app/createApp';
+import { parseCities, type City } from '../../src/core/cities';
+import type { GeolocationPort } from '../../src/core/ports';
 import type { Location } from '../../src/core/prayerTimes';
 import { KEYS } from '../../src/core/storage';
 import { SCHAUMBURG } from './days';
@@ -21,6 +25,7 @@ export interface MountOptions {
   wakeLock?: FakeWakeLock;
   /** Reuse an existing clock (e.g. to simulate a reload at the same moment). */
   clock?: FakeClock;
+  geolocation?: GeolocationPort;
 }
 
 export interface Mounted {
@@ -70,6 +75,8 @@ export function mountApp(opts: MountOptions = {}): Mounted {
     rng: seededRng(1),
     wakeLock,
     chime,
+    geolocation: opts.geolocation ?? { getPosition: () => Promise.reject(new Error('denied')) },
+    loadCities: () => Promise.resolve(testCities()),
     objectUrls: { create: (b) => URL.createObjectURL(b), revoke: (u) => URL.revokeObjectURL(u) },
     createPlayer: () => {
       const p = new FakeMediaPlayer();
@@ -95,4 +102,15 @@ export function mountApp(opts: MountOptions = {}): Mounted {
       if (!opts.clock) clock.dispose();
     },
   };
+}
+
+let cities: City[] | null = null;
+/** The real bundled dataset, parsed once per test file. */
+export function testCities(): City[] {
+  cities ??= parseCities(
+    JSON.parse(
+      readFileSync(join(import.meta.dirname, '..', '..', 'public', 'data', 'cities.json'), 'utf8'),
+    ),
+  );
+  return cities;
 }

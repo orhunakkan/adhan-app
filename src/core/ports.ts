@@ -73,3 +73,8 @@ export interface ObjectUrls {
   create(blob: Blob): string;
   revoke(url: string): void;
 }
+
+/** One-shot position (used once to set the location, brief §5). */
+export interface GeolocationPort {
+  getPosition(): Promise<{ lat: number; lng: number }>;
+}

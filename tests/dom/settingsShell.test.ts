@@ -43,10 +43,10 @@ describe('settings shell', () => {
     m = mountApp({ start: START });
     longPress(m);
     const sections = [...document.querySelectorAll<HTMLElement>('.settings__section')];
-    expect(sections.map((s) => s.dataset.section)).toEqual(['about']);
+    expect(sections.map((s) => s.dataset.section)).toEqual(['location', 'calculation', 'about']);
     expect(sections[0]!.getAttribute('aria-current')).toBe('page');
     expect(sections.every((s) => s.classList.contains('touch-target'))).toBe(true);
-    expect(q('.settings__pane')!.textContent).toMatch(/^v\d/);
+    expect(q('.settings__pane')!.dataset.section).toBe('location');
     q('.settings')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     expect(q('.settings')).toBeNull();
     expect(m.root.querySelector<HTMLElement>('.app-main')!.inert).toBe(false);

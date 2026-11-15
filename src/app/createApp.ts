@@ -8,12 +8,14 @@ import type {
   BlobStore,
   ChimePort,
   Clock,
+  GeolocationPort,
   KeyValueStore,
   MediaPlayer,
   ObjectUrls,
   Rng,
   WakeLockPort,
 } from '../core/ports';
+import type { City } from '../core/cities';
 import type { AzanPrayer } from '../core/prayerTimes';
 import { createScheduler, type PrayerEvent, type SchedulerEvent } from '../core/scheduler';
 import { createWakeLockManager, type WakeLockStatus } from '../core/wakeLock';
@@ -26,6 +28,8 @@ import { mountClockView } from '../ui/clockView';
 import { mountNextPrayerCard } from '../ui/nextPrayerCard';
 import { mountPreAlert } from '../ui/preAlert';
 import { aboutSection } from '../ui/settings/about';
+import { calculationSection } from '../ui/settings/calculation';
+import { locationSection } from '../ui/settings/location';
 import { mountSettings, type SettingsView } from '../ui/settings/shell';
 import { mountTimeline } from '../ui/timeline';
 import { mountLayout } from '../ui/layout';
@@ -47,6 +51,9 @@ export interface AppDeps {
   chime: ChimePort;
   objectUrls: ObjectUrls;
   wakeLock: WakeLockPort;
+  geolocation: GeolocationPort;
+  /** Fetches and parses public/data/cities.json (lazy). */
+  loadCities: () => Promise<City[]>;
 }
 
 export interface ActiveAzan {
@@ -386,7 +393,8 @@ export function createApp(deps: AppDeps): App {
   late.settings = mountSettings(deps.root, {
     app,
     clock: deps.clock,
-    sections: [aboutSection],
+    sections: [locationSection, calculationSection, aboutSection],
+    services: { geolocation: deps.geolocation, loadCities: deps.loadCities },
     background: main,
     matchMedia: (q) => deps.win.matchMedia(q),
     toast: (message) => toast.show({ message }),
