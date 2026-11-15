@@ -1,18 +1,23 @@
 // Photos (brief §9): upload (resized before storing) and delete.
 import { t } from '../../i18n';
+import { uploadMessage } from './uploadMessage';
 import { h } from '../dom';
 import { actionButton, group } from './controls';
 import type { SettingsSection } from './shell';
 
-/** Thumbnail URLs of the last render, revoked on the next one (no leaks across re-renders). */
+/** Thumbnail URLs of the current render; revoked by destroy() (re-render or close). */
 let thumbs: string[] = [];
+let revoke: (url: string) => void = () => {};
 
 export const photosSection: SettingsSection = {
   id: 'photos',
+  destroy() {
+    for (const url of thumbs) revoke(url);
+    thumbs = [];
+  },
   render(pane, ctx) {
     const lang = ctx.lang;
-    for (const url of thumbs) ctx.services.revokeUrl(url);
-    thumbs = [];
+    revoke = (url) => ctx.services.revokeUrl(url);
     const keys = ctx.state.settings.photos;
 
     const add = group();
@@ -26,7 +31,7 @@ export const photosSection: SettingsSection = {
       if (!files.length) return;
       void ctx.services.savePhotos(files).then(
         () => ctx.toast(t(lang, 'settings.saved')),
-        () => ctx.toast(t(lang, 'settings.invalid')),
+        (err: unknown) => ctx.toast(uploadMessage(lang, err)),
       );
     });
     const button = actionButton(t(lang, 'photos.add'), () => input.click(), 'pill-button--accent');
@@ -49,6 +54,7 @@ export const photosSection: SettingsSection = {
       li.dataset.photo = key;
       const img = h('img', 'photos__thumb');
       img.alt = t(lang, 'photos.item', { n: i + 1 });
+      img.loading = 'lazy';
       void ctx.services.photoUrl(key).then((url) => {
         if (!url) return;
         thumbs.push(url);

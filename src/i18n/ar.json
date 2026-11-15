@@ -115,5 +115,9 @@
   "debug.period": "الوقت / السمة",
   "debug.log": "السجل",
   "debug.none": "—",
-  "section.debug": "التشخيص"
+  "section.debug": "التشخيص",
+  "upload.tooLarge": "الملف كبير جدًا",
+  "upload.wrongType": "نوع الملف غير مدعوم",
+  "upload.tooMany": "يمكن إضافة 200 صورة كحد أقصى",
+  "upload.storageFull": "التخزين ممتلئ؛ لم تُحفظ بعض الملفات"
 }

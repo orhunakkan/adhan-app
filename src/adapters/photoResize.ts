@@ -2,6 +2,8 @@ import type { PhotoProcessor } from '../core/ports';
 
 export const MAX_PHOTO_EDGE = 2048; // the iPad's 2048×1536 screen
 export const PHOTO_QUALITY = 0.85;
+/** Larger originals are refused before drawing: decoding them can crash a 2 GB iPad. */
+export const MAX_SOURCE_PIXELS = 40_000_000;
 
 export function fitWithin(w: number, h: number, max = MAX_PHOTO_EDGE): { w: number; h: number } {
   const scale = Math.min(1, max / Math.max(w, h));
@@ -14,7 +16,7 @@ export function fitWithin(w: number, h: number, max = MAX_PHOTO_EDGE): { w: numb
  */
 export function createCanvasPhotoProcessor(doc: Document): PhotoProcessor {
   return {
-    async resize(file) {
+    async resize(file, maxEdge = MAX_PHOTO_EDGE) {
       const url = URL.createObjectURL(file);
       try {
         const img = doc.createElement('img');
@@ -23,7 +25,10 @@ export function createCanvasPhotoProcessor(doc: Document): PhotoProcessor {
           img.onerror = () => reject(new Error('image decode failed'));
           img.src = url;
         });
-        const { w, h } = fitWithin(img.naturalWidth, img.naturalHeight);
+        if (img.naturalWidth * img.naturalHeight > MAX_SOURCE_PIXELS) {
+          throw new Error('image too large to decode safely');
+        }
+        const { w, h } = fitWithin(img.naturalWidth, img.naturalHeight, maxEdge);
         const canvas = doc.createElement('canvas');
         canvas.width = w;
         canvas.height = h;

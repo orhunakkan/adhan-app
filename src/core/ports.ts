@@ -81,7 +81,8 @@ export interface GeolocationPort {
 
 /** Resizes an uploaded photo to <= 2048 px (long edge), JPEG ~0.85 (brief §9). */
 export interface PhotoProcessor {
-  resize(file: Blob): Promise<Blob>;
+  /** Fits the photo within `maxEdge` px (default 2048, the iPad's screen); JPEG ~0.85. */
+  resize(file: Blob, maxEdge?: number): Promise<Blob>;
 }
 
 /** Service worker registration (workbox-window in production). */

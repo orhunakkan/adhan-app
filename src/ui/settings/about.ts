@@ -34,6 +34,8 @@ export const aboutSection: SettingsSection = {
         reset.classList.add('pill-button--danger');
         return;
       }
+      // Reset also removes uploaded audio and family photos (nothing left behind).
+      void ctx.services.clearFiles();
       ctx.app.updateSettings(defaultSettings);
       ctx.toast(t(defaultSettings.display.language, 'settings.saved'));
     });

@@ -3,6 +3,8 @@
 import { settingsSchema, type Settings } from '../config/schema';
 import { createAudioController, type AudioState } from '../core/audio';
 import { blobBytes } from '../core/blobUsage';
+import { thumbKey } from '../core/photos';
+import { checkUpload, MAX_PHOTOS, referencedAudioKeys, UploadError } from '../core/uploads';
 import { createLogger, type LogEntry, type Logger } from '../core/logger';
 import { nightDimState, type NightDimState } from '../core/nightDim';
 import { periodAt, type PeriodInfo, type ThreeDays } from '../core/period';
@@ -138,6 +140,8 @@ export const SILENT_AZAN_MS = 3 * 60_000;
 export const MAX_AZAN_MS = 20 * 60_000;
 /** A queued azan (coincident prayers) still plays if it is at most this old. */
 const QUEUE_MAX_AGE_MS = 25 * 60_000;
+/** Settings-grid thumbnails: small, so 200 of them never cost full-size decodes. */
+const THUMB_EDGE = 320;
 /** After "Tap to enable azan", an azan this recent is replayed. */
 const REPLAY_WINDOW_MS = 5 * 60_000;
 
@@ -396,7 +400,26 @@ export function createApp(deps: AppDeps): App {
   applyDisplay(settings);
   let lastDisplay = settings.display;
   let lastPhotos = settings.photos;
+  let lastAzan = settings.azan;
+  /** Deletes uploaded audio no prayer (or the dua) uses any more. */
+  const pruneAudio = async () => {
+    try {
+      const used = referencedAudioKeys(store.get().settings);
+      for (const key of await deps.blobs.keys()) {
+        if (key.startsWith('a') && !used.has(key)) {
+          await deps.blobs.delete(key);
+          log.info('unused audio deleted', { key });
+        }
+      }
+    } catch (err) {
+      log.warn('audio cleanup failed', String(err));
+    }
+  };
   store.subscribe((s) => {
+    if (s.settings.azan !== lastAzan) {
+      lastAzan = s.settings.azan;
+      void pruneAudio();
+    }
     if (s.settings.photos !== lastPhotos) {
       lastPhotos = s.settings.photos;
       photos.reset(); // a deleted photo's prepared URL must not linger
@@ -545,31 +568,54 @@ export function createApp(deps: AppDeps): App {
       geolocation: deps.geolocation,
       loadCities: deps.loadCities,
       saveAudio: async (file) => {
+        checkUpload(file, 'audio');
         const key = `a${deps.clock.now().getTime().toString(36)}${(uploads++).toString(36)}`;
-        await deps.blobs.set(key, file);
+        try {
+          await deps.blobs.set(key, file);
+        } catch (err) {
+          log.error('audio upload failed', String(err));
+          throw new UploadError('storageFull');
+        }
         log.info('audio uploaded', { key, bytes: file.size });
         return `user:${key}`;
       },
       storageUsed: () => blobBytes(deps.blobs),
       savePhotos: async (files) => {
-        const keys: string[] = [];
-        for (const file of files) {
-          const resized = await deps.photoProcessor.resize(file);
-          const key = `p${deps.clock.now().getTime().toString(36)}${(uploads++).toString(36)}`;
-          await deps.blobs.set(key, resized);
-          keys.push(key);
-        }
         const current = store.get().settings.photos;
-        app.updateSettings({ photos: [...current, ...keys] });
-        log.info('photos uploaded', { count: keys.length });
+        if (current.length + files.length > MAX_PHOTOS) throw new UploadError('tooMany');
+        for (const file of files) checkUpload(file, 'image');
+        const keys: string[] = [];
+        try {
+          for (const file of files) {
+            const full = await deps.photoProcessor.resize(file);
+            const thumb = await deps.photoProcessor.resize(file, THUMB_EDGE);
+            const key = `p${deps.clock.now().getTime().toString(36)}${(uploads++).toString(36)}`;
+            await deps.blobs.set(key, full);
+            keys.push(key);
+            await deps.blobs.set(thumbKey(key), thumb);
+          }
+        } catch (err) {
+          log.error('photo upload failed', String(err));
+          throw err instanceof UploadError ? err : new UploadError('storageFull');
+        } finally {
+          // Whatever was stored stays visible and deletable, even if a later file failed.
+          if (keys.length)
+            app.updateSettings({ photos: [...store.get().settings.photos, ...keys] });
+          log.info('photos uploaded', { count: keys.length });
+        }
       },
       deletePhoto: async (key) => {
         await deps.blobs.delete(key);
+        await deps.blobs.delete(thumbKey(key));
         app.updateSettings({ photos: store.get().settings.photos.filter((k) => k !== key) });
       },
       photoUrl: async (key) => {
-        const blob = await deps.blobs.get(key);
+        const blob = (await deps.blobs.get(thumbKey(key))) ?? (await deps.blobs.get(key));
         return blob ? deps.objectUrls.create(blob) : null;
+      },
+      clearFiles: async () => {
+        for (const key of await deps.blobs.keys()) await deps.blobs.delete(key);
+        log.info('all uploaded files deleted');
       },
       revokeUrl: (url) => deps.objectUrls.revoke(url),
     },

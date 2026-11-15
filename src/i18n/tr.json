@@ -115,5 +115,9 @@
   "debug.period": "Vakit / tema",
   "debug.log": "Günlük",
   "debug.none": "—",
-  "section.debug": "Tanılama"
+  "section.debug": "Tanılama",
+  "upload.tooLarge": "Dosya çok büyük",
+  "upload.wrongType": "Bu dosya türü desteklenmiyor",
+  "upload.tooMany": "En fazla 200 fotoğraf eklenebilir",
+  "upload.storageFull": "Depolama dolu; bazı dosyalar kaydedilemedi"
 }
