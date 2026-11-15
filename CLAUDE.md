@@ -28,15 +28,22 @@ Skills in use, by phase:
   - The `test-engineer` persona must express "E2E" needs as `mountApp()` integration tests in the `dom` project.
 - "Verified end-to-end" in this repo means: the `mountApp()` happy-dom integration harness passes, plus the manual iPad checklist (`README.md`) for real-device behavior.
 
-## Commands (fill in exact flags once scaffolded)
+## Commands
 
-- Dev: `npm run dev`
+- Dev: `npm run dev` (`/styleguide` for visual review)
 - Lint: `npm run lint` (ESLint + Stylelint + Prettier check)
-- Typecheck: `npm run typecheck`
-- Unit + DOM tests with coverage: `npm run test:coverage`
-- Build: `npm run build`
-- Build verification tests: `npm run test:build`
-- Full CI order: `npm run ci` (lint → typecheck → core+dom with coverage → build → build tests)
+- Typecheck: `npm run typecheck` (app, tests and config tsconfigs)
+- Unit + DOM tests with coverage: `npm run test:coverage` (projects `core*` incl. pinned TZ runs, `dom`)
+- Build: `npm run build`; build verification: `npm run test:build`
+- Benchmarks (local only): `npm run bench`
+- Full CI order: `npm run ci`; floor guard on a branch: `node scripts/floor-guard.mjs --base main`
+- Generated assets: `scripts/copy-fonts.mjs`, `scripts/build-cities.mjs <cities15000.txt>`, `scripts/build-icons.sh`, `scripts/normalize-audio.sh`, `scripts/fetch-fixtures.mjs`
+
+## Workflow notes
+
+- Work on a `phase-N-*` branch, one commit per task, PR to `main` once `npm run ci` is green; branch protection requires the `ci` check.
+- Chain checks before committing (`npm run typecheck && npm run lint && …`): piping into `tail` hides a failing exit code.
+- Decisions live in `docs/adr/`; add one when a choice would otherwise be re-litigated.
 
 ## Hard rules
 

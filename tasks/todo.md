@@ -294,7 +294,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `scripts/normalize-audio.sh`, `public/audio/silence.m4a`
   - Deps: 4
 
-- [ ] **Task 37: README, notices, ADRs** (S) — §12.1, §15, documentation-and-adrs
+- [x] **Task 37: README, notices, ADRs** (S) — §12.1, §15, documentation-and-adrs
   - Acceptance: README with dev commands, audio + rights, deploy (both Cloudflare paths), iPad kiosk checklist, manual test checklist, bench baseline, contributing; `THIRD_PARTY_NOTICES.md`; ADRs for the ports/adapters, 1 s tick, single audio element, no wake lock / no reload, and Vitest-only testing decisions
   - Verify: the build hygiene test (notices + licenses) passes; links resolve
   - Files: `README.md`, `THIRD_PARTY_NOTICES.md`, `docs/adr/*.md`

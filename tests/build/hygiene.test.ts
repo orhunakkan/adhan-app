@@ -89,3 +89,25 @@ describe('fonts', () => {
     }
   });
 });
+
+describe('docs', () => {
+  it('ships THIRD_PARTY_NOTICES.md naming every runtime dependency', () => {
+    const notices = readFileSync(join(ROOT, 'THIRD_PARTY_NOTICES.md'), 'utf8');
+    const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as {
+      dependencies: Record<string, string>;
+    };
+    for (const dep of Object.keys(pkg.dependencies)) expect(notices, dep).toContain(dep);
+    expect(notices).toMatch(/GeoNames/);
+    expect(notices).toMatch(/OFL/);
+  });
+
+  it('every relative link in README and docs resolves', () => {
+    const files = ['README.md', 'THIRD_PARTY_NOTICES.md'];
+    for (const f of files) {
+      const text = readFileSync(join(ROOT, f), 'utf8');
+      for (const m of text.matchAll(/\]\((?!https?:|#)([^)#]+)\)/g)) {
+        expect(existsSync(join(ROOT, m[1]!)), `${f} → ${m[1]}`).toBe(true);
+      }
+    }
+  });
+});
