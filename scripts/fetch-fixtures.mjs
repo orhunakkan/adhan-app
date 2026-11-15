@@ -5,7 +5,10 @@
 //
 // Sources:
 // - Aladhan API (https://aladhan.com/prayer-times-api): an independent
-//   implementation of the same calculation methods, used for Schaumburg and Oslo.
+//   implementation of the same calculation methods, used for Oslo's
+//   high-latitude rules.
+// Schaumburg is checked against tests/helpers/solarOracle.ts (NOAA solar
+// position) instead: Aladhan's winter Asr there is ~1.7 min early vs NOAA.
 // - Diyanet İşleri Başkanlığı published table for İstanbul, via the public
 //   ezanvakti.emushaf.net mirror of namazvakti.diyanet.gov.tr (ilçe id 9541).
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -89,19 +92,8 @@ function write(file, data) {
 }
 
 mkdirSync(OUT, { recursive: true });
-const schaumburg = {
-  name: 'Schaumburg, IL',
-  slug: 'schaumburg',
-  lat: 42.0334,
-  lng: -88.0834,
-  tz: 'America/Chicago',
-};
 const oslo = { name: 'Oslo', slug: 'oslo', lat: 59.9139, lng: 10.7522, tz: 'Europe/Oslo' };
 
-for (const method of ['NorthAmerica', 'Turkey']) {
-  for (const month of [1, 7])
-    await aladhanMonth(schaumburg, 2026, month, method, 'MiddleOfTheNight');
-}
 for (const rule of ['MiddleOfTheNight', 'SeventhOfTheNight', 'TwilightAngle']) {
   await aladhanMonth(oslo, 2026, 6, 'MuslimWorldLeague', rule);
 }
