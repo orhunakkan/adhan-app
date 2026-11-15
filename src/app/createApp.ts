@@ -4,6 +4,7 @@ import { settingsSchema, type Settings } from '../config/schema';
 import { createAudioController, type AudioState } from '../core/audio';
 import { blobBytes } from '../core/blobUsage';
 import { createLogger, type Logger } from '../core/logger';
+import { nightDimState, type NightDimState } from '../core/nightDim';
 import { periodAt, type PeriodInfo, type ThreeDays } from '../core/period';
 import type {
   BlobStore,
@@ -31,6 +32,7 @@ import { mountBackground } from '../ui/background';
 import { mountClockView } from '../ui/clockView';
 import { mountNextPrayerCard } from '../ui/nextPrayerCard';
 import { mountPreAlert } from '../ui/preAlert';
+import { mountKiosk } from '../ui/kiosk';
 import { mountScreensaver } from '../ui/screensaver';
 import { aboutSection } from '../ui/settings/about';
 import { azanSection } from '../ui/settings/azan';
@@ -88,6 +90,9 @@ export interface AppState {
   startRequired: boolean;
   overlay: OverlayKind;
   wakeLock: WakeLockStatus;
+  nightDim: NightDimState;
+  /** prefers-reduced-motion: no breathing, Ken Burns or drift; plain fades. */
+  reducedMotion: boolean;
 }
 
 export interface App {
@@ -140,6 +145,8 @@ export function createApp(deps: AppDeps): App {
       startRequired: true,
       overlay: 'start',
       wakeLock: 'idle',
+      nightDim: { active: false, opacity: 0 },
+      reducedMotion: false,
     },
     // Views subscribe to this store; a throwing view is logged, never propagated.
     (e) => log.error('view listener threw', String(e)),
@@ -182,8 +189,12 @@ export function createApp(deps: AppDeps): App {
     panels: () => panels,
     photoSlide: () => photos.slide(),
     primePhotos: () => photos.prime(),
-    suppressed: () => late.settings?.isOpen() ?? false,
+    suppressed: (s) => s.nightDim.active || (late.settings?.isOpen() ?? false),
   });
+  const kiosk = mountKiosk(deps.root, { shifted: layout.root, rng: deps.rng, doc: deps.doc });
+  const reducedMotion = deps.win.matchMedia('(prefers-reduced-motion: reduce)');
+  const onMotion = () => store.update({ reducedMotion: reducedMotion.matches });
+  reducedMotion.addEventListener('change', onMotion);
   const azanView = mountAzanView(deps.root, {
     onStop: () => app.stopAzan(),
     position: () => audio.position(),
@@ -270,11 +281,22 @@ export function createApp(deps: AppDeps): App {
     },
   });
 
-  const withPeriod = (now: Date, days: ThreeDays | null) => ({
-    now,
-    days,
-    period: days ? periodAt(now, days) : null,
-  });
+  const withPeriod = (now: Date, days: ThreeDays | null) => {
+    const s = store.get();
+    return {
+      now,
+      days,
+      period: days ? periodAt(now, days) : null,
+      nightDim: days
+        ? nightDimState({
+            now,
+            days,
+            settings: s.settings.display.nightDim,
+            azanActive: Boolean(s.azan),
+          })
+        : { active: false, opacity: 0 },
+    };
+  };
 
   const onEvent = (e: SchedulerEvent) => {
     if (e.type === 'day') {
@@ -357,6 +379,7 @@ export function createApp(deps: AppDeps): App {
     preAlert.render(s);
     azanView.render(s);
     screensaver.render(s);
+    kiosk.render(s);
     late.settings?.render(s);
   };
   store.subscribe(renderViews);
@@ -414,6 +437,8 @@ export function createApp(deps: AppDeps): App {
       scheduler.stop();
       late.settings?.destroy();
       screensaver.destroy();
+      kiosk.destroy();
+      reducedMotion.removeEventListener('change', onMotion);
       photos.reset();
       overlayView.destroy();
       layout.destroy();
@@ -479,6 +504,7 @@ export function createApp(deps: AppDeps): App {
     })
     .catch((err: unknown) => log.warn('panels could not load', String(err)));
 
+  onMotion();
   scheduler.start();
   log.info('app started');
   return app;

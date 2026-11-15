@@ -95,3 +95,20 @@ describe('photo slideshow', () => {
     expect(q('.photo__img')!.getAttribute('alt')).toBe('');
   });
 });
+
+describe('Ken Burns', () => {
+  it('photo slides get the Ken Burns class when motion is allowed', async () => {
+    const { blobs, keys } = await withPhotos(2);
+    const m = mountApp({
+      start: QUIET,
+      blobs,
+      settings: {
+        photos: keys,
+        display: { ...defaultSettings.display, screensaverMode: 'photos' },
+      },
+    });
+    for (let i = 0; i < 9 && !q('.slide--in.photo'); i++) await m.clock.advanceByAsync(INTERVAL);
+    expect(q('.slide--in.photo')!.classList.contains('photo--kenburns')).toBe(true);
+    m.dispose();
+  });
+});

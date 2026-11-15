@@ -4,6 +4,8 @@
 import { h, toggleClass } from './dom';
 
 export interface Layout {
+  /** The whole layout, shifted for burn-in. */
+  root: HTMLElement;
   clock: HTMLElement;
   next: HTMLElement;
   timeline: HTMLElement;
@@ -30,6 +32,7 @@ export function mountLayout(host: HTMLElement, matchMedia: (q: string) => MediaQ
   mq.addEventListener('change', apply);
 
   return {
+    root,
     clock,
     next,
     timeline,

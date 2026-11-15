@@ -18,7 +18,7 @@ export function mountAzanView(
   const root = h('section', 'azan');
   root.setAttribute('aria-live', 'assertive');
   root.setAttribute('aria-hidden', 'true');
-  const glow = h('div', 'azan__glow azan__glow--breathing');
+  const glow = h('div', 'azan__glow');
   glow.setAttribute('aria-hidden', 'true');
   const label = h('p', 'azan__label');
   const name = h('h1', 'azan__name');
@@ -50,6 +50,7 @@ export function mountAzanView(
       toggleClass(root, 'azan--visible', on);
       root.setAttribute('aria-hidden', on ? 'false' : 'true');
       root.inert = !on;
+      toggleClass(glow, 'azan__glow--breathing', !s.reducedMotion);
       if (!az) return;
       const lang = s.settings.display.language;
       setText(label, t(lang, 'azan.label'));
