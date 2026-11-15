@@ -2,10 +2,12 @@
 // optionally behind a 4-digit PIN. Landscape: sidebar + pane. Portrait:
 // drill-down list. A translucent sheet, so changes preview live behind it.
 import type { App, AppState } from '../../app/createApp';
+import type { Settings } from '../../config/schema';
 import type { City } from '../../core/cities';
 import type { Clock, GeolocationPort, TimerHandle } from '../../core/ports';
 import { t, type Lang, type MessageKey } from '../../i18n';
-import { h, openModal, toggleClass, trapTab } from '../dom';
+import { h, openModal, setAttr, toggleClass, trapTab } from '../dom';
+import { actionButton } from './controls';
 
 export const LONG_PRESS_MS = 3000;
 /** The sheet closes (and re-locks) after this long without a touch. */
@@ -44,6 +46,15 @@ export interface SettingsContext {
   /** Opens another section (e.g. About → Diagnostics). */
   navigate(id: SectionId): void;
   toast(message: string): void;
+}
+
+/** Applies a change made with a settings control; an invalid value shows a toast instead of throwing. */
+export function updateSettingsOrToast(ctx: SettingsContext, patch: Partial<Settings>): void {
+  try {
+    ctx.app.updateSettings(patch);
+  } catch {
+    ctx.toast(t(ctx.lang, 'settings.invalid'));
+  }
 }
 
 export interface SettingsSection {
@@ -116,17 +127,19 @@ export function mountSettings(
   for (const ev of ['pointerup', 'pointercancel', 'pointerleave'])
     hotspot.addEventListener(ev, cancelPress);
 
+  const openSection = (id: SectionId) => {
+    current = id;
+    drilled = true;
+    draw(true);
+  };
+
   const ctx = (): SettingsContext => ({
     app: deps.app,
     services: deps.services,
     state: deps.app.state(),
     lang: lang(),
     refresh: () => draw(true),
-    navigate: (id) => {
-      current = id;
-      drilled = true;
-      draw(true);
-    },
+    navigate: openSection,
     toast: deps.toast,
   });
 
@@ -149,7 +162,7 @@ export function mountSettings(
     const lockedFor = () => Math.max(0, lockedUntil - deps.clock.now().getTime());
     const showLock = () => {
       const ms = lockedFor();
-      if (ms > 0) error.textContent = tr('pin.locked').replace('{n}', String(Math.ceil(ms / 1000)));
+      if (ms > 0) error.textContent = t(lang(), 'pin.locked', { n: Math.ceil(ms / 1000) });
       return ms > 0;
     };
     const press = (d: string) => {
@@ -187,9 +200,7 @@ export function mountSettings(
       show();
     });
     keys.append(del);
-    const close = h('button', 'pill-button touch-target', tr('settings.close'));
-    close.type = 'button';
-    close.addEventListener('click', () => view.close());
+    const close = actionButton(tr('settings.close'), () => view.close());
     pad.append(title, dots, error, keys, close);
     pad.addEventListener('keydown', (e) => trapTab(pad, e));
     return pad;
@@ -207,15 +218,15 @@ export function mountSettings(
     );
     title.id = 'settings-title';
     el.setAttribute('aria-labelledby', title.id);
-    const back = h('button', 'pill-button touch-target settings__back', tr('settings.back'));
-    back.type = 'button';
-    back.addEventListener('click', () => {
-      drilled = false;
-      draw(true);
-    });
-    const close = h('button', 'pill-button touch-target', tr('settings.close'));
-    close.type = 'button';
-    close.addEventListener('click', () => view.close());
+    const back = actionButton(
+      tr('settings.back'),
+      () => {
+        drilled = false;
+        draw(true);
+      },
+      'settings__back',
+    );
+    const close = actionButton(tr('settings.close'), () => view.close());
     header.append(back, title, close);
 
     const nav = h('nav', 'settings__nav');
@@ -227,11 +238,7 @@ export function mountSettings(
       b.type = 'button';
       b.dataset.section = s.id;
       if (s.id === current) b.setAttribute('aria-current', 'page');
-      b.addEventListener('click', () => {
-        current = s.id;
-        drilled = true;
-        draw(true);
-      });
+      b.addEventListener('click', () => openSection(s.id));
       li.append(b);
       list.append(li);
     }
@@ -319,8 +326,7 @@ export function mountSettings(
     isOpen: () => open,
     render(s) {
       // The corner button's name follows the UI language.
-      const label = t(s.settings.display.language, 'settings.title');
-      if (hotspot.getAttribute('aria-label') !== label) hotspot.setAttribute('aria-label', label);
+      setAttr(hotspot, 'aria-label', t(s.settings.display.language, 'settings.title'));
       draw();
     },
     destroy() {

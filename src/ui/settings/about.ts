@@ -3,7 +3,7 @@ import { defaultSettings } from '../../config/defaults';
 import { formatBytes } from '../../core/blobUsage';
 import { INTL_LOCALE, t } from '../../i18n';
 import { h } from '../dom';
-import { actionButton, group } from './controls';
+import { actionButton, field, group } from './controls';
 import type { SettingsSection } from './shell';
 
 export const aboutSection: SettingsSection = {
@@ -45,7 +45,7 @@ export const aboutSection: SettingsSection = {
       remove.dataset.key = 'pin-remove';
       pinGroup.body.append(remove);
     } else {
-      const field = (label: string, key: string) => {
+      const pinInput = (label: string, key: string) => {
         const input = h('input', 'input touch-target');
         input.type = 'password';
         input.inputMode = 'numeric';
@@ -53,13 +53,11 @@ export const aboutSection: SettingsSection = {
         input.autocomplete = 'off';
         input.dataset.key = key;
         input.setAttribute('aria-label', label);
-        const row = h('label', 'row');
-        row.append(h('span', 'row__label', label), input);
-        pinGroup.body.append(row);
+        pinGroup.body.append(field(label, input));
         return input;
       };
-      const first = field(t(lang, 'pin.new'), 'pin-new');
-      const second = field(t(lang, 'pin.repeat'), 'pin-repeat');
+      const first = pinInput(t(lang, 'pin.new'), 'pin-new');
+      const second = pinInput(t(lang, 'pin.repeat'), 'pin-repeat');
       const save = actionButton(t(lang, 'pin.save'), () => {
         if (!/^\d{4}$/.test(first.value) || first.value !== second.value) {
           ctx.toast(t(lang, 'pin.mismatch'));

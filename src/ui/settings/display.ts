@@ -3,17 +3,12 @@
 import { LANGUAGES, SCREENSAVER_MODES, THEMES, type Settings } from '../../config/schema';
 import { t } from '../../i18n';
 import { group, segmented, stepper, toggle } from './controls';
-import type { SettingsContext, SettingsSection } from './shell';
+import { updateSettingsOrToast, type SettingsContext, type SettingsSection } from './shell';
 
 const LANGUAGE_NAMES = { tr: 'Türkçe', en: 'English', ar: 'العربية' } as const;
 
-function update(ctx: SettingsContext, display: Settings['display']) {
-  try {
-    ctx.app.updateSettings({ display });
-  } catch {
-    ctx.toast(t(ctx.lang, 'settings.invalid'));
-  }
-}
+const update = (ctx: SettingsContext, display: Settings['display']) =>
+  updateSettingsOrToast(ctx, { display });
 
 export const displaySection: SettingsSection = {
   id: 'display',

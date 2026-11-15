@@ -106,6 +106,13 @@ export function select<T extends string>(
   return row(label, s);
 }
 
+/** A form row: a visible label wrapping its input or select. */
+export function field(label: string, input: HTMLInputElement | HTMLSelectElement): HTMLElement {
+  const row = h('label', 'row');
+  row.append(h('span', 'row__label', label), input);
+  return row;
+}
+
 export function actionButton(label: string, onClick: () => void, variant = ''): HTMLButtonElement {
   const b = h('button', `pill-button touch-target ${variant}`.trim(), label);
   b.type = 'button';

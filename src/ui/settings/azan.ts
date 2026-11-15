@@ -6,7 +6,7 @@ import { prayerName, t } from '../../i18n';
 import { uploadMessage } from './uploadMessage';
 import { h } from '../dom';
 import { actionButton, group, select, stepper, toggle } from './controls';
-import type { SettingsContext, SettingsSection } from './shell';
+import { updateSettingsOrToast, type SettingsContext, type SettingsSection } from './shell';
 
 /** Bundled files the README tells the owner to add under public/audio (never committed). */
 export const BUNDLED_SOURCES = [
@@ -27,13 +27,8 @@ function sourceOptions(ctx: SettingsContext, current: string) {
   return opts;
 }
 
-function update(ctx: SettingsContext, azan: Settings['azan']) {
-  try {
-    ctx.app.updateSettings({ azan });
-  } catch {
-    ctx.toast(t(ctx.lang, 'settings.invalid'));
-  }
-}
+const update = (ctx: SettingsContext, azan: Settings['azan']) =>
+  updateSettingsOrToast(ctx, { azan });
 
 function uploadButton(ctx: SettingsContext, key: string, onSource: (source: string) => void) {
   const input = h('input');

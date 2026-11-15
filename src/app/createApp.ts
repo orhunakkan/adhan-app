@@ -187,6 +187,9 @@ export function createApp(deps: AppDeps): App {
   );
   const queue: PrayerEvent[] = [];
   let uploads = 0;
+  /** A fresh blob key: 'a' for uploaded audio, 'p' for photos; unique even within one millisecond. */
+  const newBlobKey = (prefix: 'a' | 'p') =>
+    `${prefix}${deps.clock.now().getTime().toString(36)}${(uploads++).toString(36)}`;
   let lastUpdateCheck: string | null = null;
   let citiesPromise: Promise<City[]> | null = null;
   let persistAsked = false;
@@ -583,7 +586,7 @@ export function createApp(deps: AppDeps): App {
         })),
       saveAudio: async (file) => {
         checkUpload(file, 'audio');
-        const key = `a${deps.clock.now().getTime().toString(36)}${(uploads++).toString(36)}`;
+        const key = newBlobKey('a');
         try {
           await deps.blobs.set(key, file);
         } catch (err) {
@@ -603,7 +606,7 @@ export function createApp(deps: AppDeps): App {
           for (const file of files) {
             const full = await deps.photoProcessor.resize(file);
             const thumb = await deps.photoProcessor.resize(file, THUMB_EDGE);
-            const key = `p${deps.clock.now().getTime().toString(36)}${(uploads++).toString(36)}`;
+            const key = newBlobKey('p');
             await deps.blobs.set(key, full);
             keys.push(key);
             await deps.blobs.set(thumbKey(key), thumb);
