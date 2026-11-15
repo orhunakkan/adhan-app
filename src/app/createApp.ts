@@ -291,6 +291,8 @@ export function createApp(deps: AppDeps): App {
   };
 
   const startAzan = (e: PrayerEvent) => {
+    // The azan takes over: Settings (which sits above it) closes and re-locks.
+    late.settings?.close();
     azanShownAt = deps.clock.now().getTime();
     azanAudio = false;
     store.update({ azan: { prayer: e.prayer, key: e.key, at: e.at } });

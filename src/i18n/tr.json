@@ -119,5 +119,14 @@
   "upload.tooLarge": "Dosya çok büyük",
   "upload.wrongType": "Bu dosya türü desteklenmiyor",
   "upload.tooMany": "En fazla 200 fotoğraf eklenebilir",
-  "upload.storageFull": "Depolama dolu; bazı dosyalar kaydedilemedi"
+  "upload.storageFull": "Depolama dolu; bazı dosyalar kaydedilemedi",
+  "pin.section": "Ayarlar PIN kodu",
+  "pin.new": "Yeni PIN (4 rakam)",
+  "pin.repeat": "PIN'i tekrar girin",
+  "pin.save": "PIN'i ayarla",
+  "pin.remove": "PIN'i kaldır",
+  "pin.mismatch": "PIN'ler eşleşmiyor veya 4 rakam değil",
+  "pin.active": "Ayarlar PIN ile korunuyor",
+  "pin.locked": "Çok fazla deneme; {n} sn bekleyin",
+  "about.update": "Güncellemeyi uygula"
 }

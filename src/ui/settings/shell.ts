@@ -8,6 +8,10 @@ import { t, type Lang, type MessageKey } from '../../i18n';
 import { h, toggleClass } from '../dom';
 
 export const LONG_PRESS_MS = 3000;
+/** The sheet closes (and re-locks) after this long without a touch. */
+export const SETTINGS_IDLE_MS = 2 * 60_000;
+export const PIN_MAX_TRIES = 5;
+export const PIN_LOCKOUT_MS = 30_000;
 
 export type SectionId =
   'location' | 'calculation' | 'azan' | 'display' | 'photos' | 'about' | 'debug';
@@ -84,6 +88,15 @@ export function mountSettings(
   let renderedSettings: AppState['settings'] | null = null;
   let renderedKey = '';
   let pressTimer: TimerHandle | null = null;
+  let idleTimer: TimerHandle | null = null;
+  let wrongTries = 0;
+  let lockedUntil = 0;
+
+  const armIdle = () => {
+    if (idleTimer !== null) deps.clock.clearTimeout(idleTimer);
+    idleTimer = open ? deps.clock.setTimeout(() => view.close(), SETTINGS_IDLE_MS) : null;
+  };
+  for (const ev of ['pointerdown', 'keydown', 'input']) layer.addEventListener(ev, armIdle, true);
   const portrait = deps.matchMedia('(orientation: portrait)');
 
   const lang = () => deps.app.state().settings.display.language;
@@ -133,18 +146,32 @@ export function mountSettings(
       (dots.textContent = '•'.repeat(entered.length) + '○'.repeat(4 - entered.length));
     show();
     const keys = h('div', 'pin__keys');
+    const lockedFor = () => Math.max(0, lockedUntil - deps.clock.now().getTime());
+    const showLock = () => {
+      const ms = lockedFor();
+      if (ms > 0) error.textContent = tr('pin.locked').replace('{n}', String(Math.ceil(ms / 1000)));
+      return ms > 0;
+    };
     const press = (d: string) => {
+      if (showLock()) return;
       entered += d;
       show();
       if (entered.length < 4) return;
       if (entered === deps.app.state().settings.pin) {
+        wrongTries = 0;
         unlocked = true;
         draw(true);
-      } else {
-        entered = '';
-        error.textContent = tr('pin.wrong');
-        show();
+        return;
       }
+      entered = '';
+      wrongTries += 1;
+      error.textContent = tr('pin.wrong');
+      if (wrongTries >= PIN_MAX_TRIES) {
+        wrongTries = 0;
+        lockedUntil = deps.clock.now().getTime() + PIN_LOCKOUT_MS;
+        showLock();
+      }
+      show();
     };
     for (const d of ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']) {
       const b = h('button', 'pin__key touch-target', d);
@@ -272,9 +299,13 @@ export function mountSettings(
       deps.background.inert = true;
       lastKey = undefined;
       draw(true, true);
+      armIdle();
     },
     close() {
+      if (!open) return;
       open = false;
+      if (idleTimer !== null) deps.clock.clearTimeout(idleTimer);
+      idleTimer = null;
       unlocked = false;
       layer.hidden = true;
       for (const sec of deps.sections) sec.destroy?.();
@@ -288,6 +319,7 @@ export function mountSettings(
     },
     destroy() {
       cancelPress();
+      if (idleTimer !== null) deps.clock.clearTimeout(idleTimer);
       hotspot.remove();
       layer.remove();
     },
