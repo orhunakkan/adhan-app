@@ -112,7 +112,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/app/store.ts`, `src/app/createApp.ts`, `tests/helpers/mountApp.ts`, `tests/dom/app.test.ts`, `src/main.ts`
   - Deps: 12, 13
 
-- [ ] **Task 15: Audio controller (single element, sources, events)** (M) — §7
+- [x] **Task 15: Audio controller (single element, sources, events)** (M) — §7
   - Acceptance: `unlock()` creates the player exactly once and plays `silence.m4a`; azans reuse it (identity asserted); source order user Blob → bundled → Web Audio chime fallback with a warning flag; object URLs revoked after `ended`; `pause` during azan → interrupted status; `ended` → dua if enabled → idle
   - Verify: `tests/dom/audio.test.ts` with FakeMediaPlayer + fake-indexeddb; the factory call count is 1 across a simulated day
   - Files: `src/core/audio.ts`, `src/adapters/media.ts`, `tests/dom/audio.test.ts`

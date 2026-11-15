@@ -60,3 +60,16 @@ export interface BlobStore {
 export interface Rng {
   next(): number;
 }
+
+/** Fallback chime when no azan file can play (Web Audio, brief §10). */
+export interface ChimePort {
+  /** Must run inside the Start tap so iOS lets the AudioContext make sound. */
+  unlock(): void;
+  /** Plays the chime; resolves when it has finished. */
+  play(): Promise<void>;
+}
+
+export interface ObjectUrls {
+  create(blob: Blob): string;
+  revoke(url: string): void;
+}
