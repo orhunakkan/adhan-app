@@ -86,8 +86,9 @@ const QUEUE_MAX_AGE_MS = 25 * 60_000;
 const REPLAY_WINDOW_MS = 5 * 60_000;
 
 function overlayFor(startRequired: boolean, audio: AudioState): OverlayKind {
-  if (startRequired || audio.status === 'locked') return 'start';
+  // Blocked is the loud one and wins over a plain Start (e.g. after a bfcache restore).
   if (audio.status === 'blocked') return 'enableAzan';
+  if (startRequired || audio.status === 'locked') return 'start';
   if (audio.status === 'interrupted') return 'resume';
   return null;
 }
@@ -96,25 +97,31 @@ export function createApp(deps: AppDeps): App {
   const log = createLogger(deps.store, deps.clock);
   const settings = loadSettings(deps.store, (msg, detail) => log.warn(msg, detail));
   const initialAudio: AudioState = { status: 'locked', phase: null, prayer: null, missing: [] };
-  const store = createStore<AppState>({
-    settings,
-    now: deps.clock.now(),
-    days: null,
-    period: null,
-    needsLocation: settings.location === null,
-    azan: null,
-    audio: initialAudio,
-    startRequired: true,
-    overlay: 'start',
-    wakeLock: 'idle',
-  });
+  const store = createStore<AppState>(
+    {
+      settings,
+      now: deps.clock.now(),
+      days: null,
+      period: null,
+      needsLocation: settings.location === null,
+      azan: null,
+      audio: initialAudio,
+      startRequired: true,
+      overlay: 'start',
+      wakeLock: 'idle',
+    },
+    // Views subscribe to this store; a throwing view is logged, never propagated.
+    (e) => log.error('view listener threw', String(e)),
+  );
   const queue: PrayerEvent[] = [];
   /** When the current azan moment appeared (checked on every tick, no long timers). */
   let azanShownAt = 0;
   /** Audio was asked to play the current azan moment. */
   let azanAudio = false;
-  /** A Start/Enable tap is re-unlocking and may replay: don't auto-close meanwhile. */
+  /** A Start/Enable tap is in progress (guards against double taps). */
   let tapping: Promise<void> | null = null;
+  /** The unlock inside a tap is running: its "ready" must not close the moment it may replay. */
+  let unlocking = false;
 
   const setOverlay = () => {
     const s = store.get();
@@ -174,8 +181,10 @@ export function createApp(deps: AppDeps): App {
     azanShownAt = deps.clock.now().getTime();
     azanAudio = false;
     store.update({ azan: { prayer: e.prayer, key: e.key, at: e.at } });
-    // Before the Start tap nothing can sound: show the moment, then return to the clock.
-    if (audio.state().status === 'locked' || store.get().startRequired) return;
+    // Never unlocked: nothing can sound; show the moment, then return to the clock.
+    // (After a bfcache restore the element may still be allowed: try, and a
+    // NotAllowedError raises the loud overlay.)
+    if (audio.state().status === 'locked') return;
     void playCurrent(e.prayer);
   };
 
@@ -201,7 +210,7 @@ export function createApp(deps: AppDeps): App {
       store.update({ audio: a });
       setOverlay();
       // Audio went idle (ended, chime done, stopped): close the moment.
-      if (azanAudio && !tapping && a.phase === null && a.status === 'ready') closeAzan(false);
+      if (azanAudio && !unlocking && a.phase === null && a.status === 'ready') closeAzan(false);
     },
   });
 
@@ -271,7 +280,13 @@ export function createApp(deps: AppDeps): App {
       // A double tap must not run two unlocks (or two replays).
       tapping ??= (async () => {
         try {
-          const ok = await audio.unlock();
+          unlocking = true;
+          let ok: boolean;
+          try {
+            ok = await audio.unlock();
+          } finally {
+            unlocking = false;
+          }
           if (!ok) return;
           store.update({ startRequired: false });
           setOverlay();

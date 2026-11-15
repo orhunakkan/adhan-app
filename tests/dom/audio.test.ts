@@ -933,4 +933,14 @@ describe('second audio review regressions', () => {
       vi.useRealTimers();
     }
   });
+
+  it('a best-effort chime that rejects on the blocked path is logged', async () => {
+    const t = setup();
+    t.chime.play = () => Promise.reject(new Error('suspended'));
+    await t.audio.unlock();
+    t.player.rejectNextPlay('NotAllowedError');
+    await t.audio.playAzan('fajr');
+    await flush();
+    expect(t.audio.state()).toMatchObject({ status: 'blocked', phase: null });
+  });
 });
