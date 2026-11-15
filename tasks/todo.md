@@ -148,7 +148,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/design/tokens.ts`, `src/design/contrast.ts`, `tests/core/tokens.test.ts`, `tests/core/contrast.test.ts`, `tests/types/tokens.test-d.ts`
   - Deps: 3
 
-- [ ] **Task 19: i18n (TR/EN/AR, RTL)** (S) — §9 i18n
+- [x] **Task 19: i18n (TR/EN/AR, RTL)** (S) — §9 i18n
   - Acceptance: `t(key, vars)` with tr/en/ar JSON; prayer names per language; `applyLocale(doc, lang)` sets `lang` + `dir`
   - Verify: parity test (identical keys, no empty strings, matching placeholders); RTL attribute test
   - Files: `src/i18n/index.ts`, `src/i18n/{tr,en,ar}.json`, `tests/core/i18n.test.ts`

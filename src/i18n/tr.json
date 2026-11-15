@@ -6,5 +6,19 @@
   "enable.hint": "Ses iPad tarafından engellendi",
   "azan.resume": "Ezana devam et",
   "wake.hint": "Ekranı açık tutun: Ayarlar → Ekran ve Parlaklık → Otomatik Kilit → Asla; Rehberli Erişim'de de aynısını yapın",
-  "toast.dismiss": "Kapat"
+  "toast.dismiss": "Kapat",
+  "prayer.fajr": "İmsak",
+  "prayer.sunrise": "Güneş",
+  "prayer.dhuhr": "Öğle",
+  "prayer.asr": "İkindi",
+  "prayer.maghrib": "Akşam",
+  "prayer.isha": "Yatsı",
+  "clock.next": "Sıradaki vakit",
+  "clock.remaining": "kalan",
+  "clock.in": "{prayer} vaktine",
+  "prealert.text": "{prayer} vaktine {n} dk",
+  "location.missing": "Konum ayarlanmadı",
+  "location.prompt": "Namaz vakitlerini hesaplamak için ayarlardan bir konum seçin",
+  "azan.stop": "Durdur",
+  "azan.time": "Vakit {time}"
 }

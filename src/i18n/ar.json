@@ -6,5 +6,19 @@
   "enable.hint": "حظر جهاز iPad الصوت",
   "azan.resume": "استئناف الأذان",
   "wake.hint": "أبقِ الشاشة مضاءة: الإعدادات ← الشاشة والإضاءة ← القفل التلقائي ← أبدًا، وكذلك في الوصول الموجّه",
-  "toast.dismiss": "إغلاق"
+  "toast.dismiss": "إغلاق",
+  "prayer.fajr": "الفجر",
+  "prayer.sunrise": "الشروق",
+  "prayer.dhuhr": "الظهر",
+  "prayer.asr": "العصر",
+  "prayer.maghrib": "المغرب",
+  "prayer.isha": "العشاء",
+  "clock.next": "الصلاة التالية",
+  "clock.remaining": "متبقٍ",
+  "clock.in": "حتى {prayer}",
+  "prealert.text": "{prayer} بعد {n} د",
+  "location.missing": "لم يتم تحديد الموقع",
+  "location.prompt": "اختر موقعًا في الإعدادات لحساب أوقات الصلاة",
+  "azan.stop": "إيقاف",
+  "azan.time": "الوقت {time}"
 }
