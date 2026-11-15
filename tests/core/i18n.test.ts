@@ -2,6 +2,30 @@ import { describe, expect, it } from 'vitest';
 import { INTL_LOCALE, LANGS, MESSAGES, prayerName, t } from '../../src/i18n';
 import { PRAYERS } from '../../src/core/prayerTimes';
 
+describe('t', () => {
+  it('returns the string for the language', () => {
+    expect(t('tr', 'app.name')).toBe('Ezan Saati');
+    expect(t('en', 'app.name')).toBe('Azan Clock');
+  });
+
+  it('interpolates {placeholders} and leaves unknown ones in place', () => {
+    const msgs = MESSAGES.en as Record<string, string>;
+    msgs['test.vars'] = '{name} in {n} min {missing}';
+    try {
+      expect(t('en', 'test.vars' as 'app.name', { name: 'Akşam', n: 10 })).toBe(
+        'Akşam in 10 min {missing}',
+      );
+    } finally {
+      delete msgs['test.vars'];
+    }
+  });
+
+  it('formats Arabic with Arabic-Indic digits', () => {
+    expect(INTL_LOCALE.ar).toBe('ar-u-nu-arab');
+    expect(LANGS).toEqual(['tr', 'en', 'ar']);
+  });
+});
+
 const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
 describe('i18n completeness', () => {
@@ -36,7 +60,7 @@ describe('i18n completeness', () => {
   });
 });
 
-describe('t', () => {
+describe('t with real keys', () => {
   it('returns the string for the language and interpolates', () => {
     expect(t('tr', 'app.name')).toBe('Ezan Saati');
     expect(t('en', 'prealert.text', { prayer: 'Maghrib', n: 10 })).toBe('Maghrib in 10 min');
