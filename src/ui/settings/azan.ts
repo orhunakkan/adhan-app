@@ -3,6 +3,7 @@
 import { DEFAULT_AUDIO, type Settings } from '../../config/schema';
 import { AZAN_PRAYERS } from '../../core/prayerTimes';
 import { prayerName, t } from '../../i18n';
+import { uploadMessage } from './uploadMessage';
 import { h } from '../dom';
 import { actionButton, group, select, stepper, toggle } from './controls';
 import type { SettingsContext, SettingsSection } from './shell';
@@ -44,7 +45,7 @@ function uploadButton(ctx: SettingsContext, key: string, onSource: (source: stri
     if (!file) return;
     void ctx.services
       .saveAudio(file)
-      .then(onSource, () => ctx.toast(t(ctx.lang, 'settings.invalid')));
+      .then(onSource, (err: unknown) => ctx.toast(uploadMessage(ctx.lang, err)));
   });
   const b = actionButton(t(ctx.lang, 'azan.upload'), () => input.click());
   b.dataset.key = `upload:${key}`;

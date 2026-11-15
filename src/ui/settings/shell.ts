@@ -20,8 +20,10 @@ export interface SettingsServices {
   saveAudio(file: Blob): Promise<string>;
   /** Bytes used by uploaded files. */
   storageUsed(): Promise<number>;
-  /** Resizes, stores and appends photos to settings.photos. */
+  /** Resizes, stores and appends photos to settings.photos (rejects with UploadError). */
   savePhotos(files: Blob[]): Promise<void>;
+  /** Deletes every uploaded file (Reset all settings). */
+  clearFiles(): Promise<void>;
   deletePhoto(key: string): Promise<void>;
   /** An object URL for a stored photo (caller revokes with revokeUrl), or null. */
   photoUrl(key: string): Promise<string | null>;
@@ -44,6 +46,8 @@ export interface SettingsSection {
   id: SectionId;
   /** Not listed in the sidebar (reached from another section, e.g. Diagnostics). */
   hidden?: boolean;
+  /** Releases what the last render created (object URLs); called before re-render and on close. */
+  destroy?(): void;
   render(pane: HTMLElement, ctx: SettingsContext): void;
 }
 
@@ -246,6 +250,7 @@ export function mountSettings(
       (active && layer.contains(active)
         ? active.closest<HTMLElement>('[data-key]')?.dataset.key
         : undefined) ?? lastKey;
+    for (const sec of deps.sections) sec.destroy?.();
     layer.replaceChildren(unlocked ? sheet() : pinPad());
     const pane = layer.querySelector('.settings__pane');
     if (pane && sameView) pane.scrollTop = scroll;
@@ -272,6 +277,7 @@ export function mountSettings(
       open = false;
       unlocked = false;
       layer.hidden = true;
+      for (const sec of deps.sections) sec.destroy?.();
       layer.replaceChildren();
       deps.background.inert = false;
       deps.app.stopTest();

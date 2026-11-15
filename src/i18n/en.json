@@ -115,5 +115,9 @@
   "debug.period": "Period / theme",
   "debug.log": "Log",
   "debug.none": "—",
-  "section.debug": "Diagnostics"
+  "section.debug": "Diagnostics",
+  "upload.tooLarge": "The file is too large",
+  "upload.wrongType": "This file type is not supported",
+  "upload.tooMany": "At most 200 photos can be added",
+  "upload.storageFull": "Storage is full; some files were not saved"
 }

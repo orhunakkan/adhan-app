@@ -18,7 +18,7 @@ describe('fitWithin', () => {
   });
 });
 
-function fakeDoc(opts: { fail?: 'decode' | 'context' | 'encode' } = {}) {
+function fakeDoc(opts: { fail?: 'decode' | 'context' | 'encode'; huge?: boolean } = {}) {
   const canvases: Array<{ width: number; height: number }> = [];
   const toBlob = vi.fn((cb: (b: Blob | null) => void, type: string, q: number) =>
     cb(opts.fail === 'encode' ? null : new Blob(['jpg'], { type: `${type}|${q}` })),
@@ -28,8 +28,8 @@ function fakeDoc(opts: { fail?: 'decode' | 'context' | 'encode' } = {}) {
     createElement(tag: string) {
       if (tag === 'img') {
         const img = {
-          naturalWidth: 4032,
-          naturalHeight: 3024,
+          naturalWidth: opts.huge ? 9000 : 4032,
+          naturalHeight: opts.huge ? 6000 : 3024,
           onload: null as null | (() => void),
           onerror: null as null | (() => void),
         };
@@ -71,4 +71,19 @@ describe('createCanvasPhotoProcessor', () => {
       for (const c of f.canvases) expect(c).toMatchObject({ width: 0, height: 0 });
     },
   );
+
+  it('resizes to a smaller edge for thumbnails', async () => {
+    const f = fakeDoc();
+    await createCanvasPhotoProcessor(f.doc).resize(new Blob(['raw']), 320);
+    expect(f.drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 320, 240);
+  });
+
+  it('refuses images above 40 MP before drawing them', async () => {
+    const f = fakeDoc({ huge: true });
+    await expect(createCanvasPhotoProcessor(f.doc).resize(new Blob(['raw']))).rejects.toThrow(
+      /too large/,
+    );
+    expect(f.drawImage).not.toHaveBeenCalled();
+    expect(objectUrls.live).toEqual([]);
+  });
 });

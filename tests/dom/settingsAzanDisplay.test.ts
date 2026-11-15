@@ -170,6 +170,56 @@ describe('about section', () => {
     expect(q('.about__storage').textContent).toBe('8 B');
   });
 
+  it('Reset also deletes every uploaded file', async () => {
+    m = mountApp({ start: START });
+    await m.blobs.set('a1', new Blob(['x']));
+    await m.blobs.set('p1', new Blob(['y']));
+    openSection(m, 'about');
+    q('[data-key="reset"]').click();
+    q('[data-key="reset"]').click();
+    await flush();
+    expect(await m.blobs.keys()).toEqual([]);
+  });
+
+  it('replacing an uploaded azan deletes the old file once nothing uses it', async () => {
+    m = mountApp({ start: START });
+    await m.blobs.set('aold', new Blob(['old']));
+    const s = m.app.state().settings;
+    m.app.updateSettings({
+      azan: { ...s.azan, audio: { ...s.azan.audio, asr: 'user:aold', isha: 'user:aold' } },
+    });
+    await flush();
+    m.app.updateSettings({
+      azan: {
+        ...m.app.state().settings.azan,
+        audio: { ...m.app.state().settings.azan.audio, asr: 'bundled:rast' },
+      },
+    });
+    await flush();
+    expect(await m.blobs.keys()).toEqual(['aold']); // Isha still uses it
+    m.app.updateSettings({
+      azan: {
+        ...m.app.state().settings.azan,
+        audio: { ...m.app.state().settings.azan.audio, isha: 'bundled:hicaz' },
+      },
+    });
+    await flush();
+    expect(await m.blobs.keys()).toEqual([]);
+  });
+
+  it('rejects a non-audio upload with a clear message', async () => {
+    m = mountApp({ start: START });
+    openSection(m, 'azan');
+    const input = q('.group[data-prayer="isha"] input[type="file"]') as HTMLInputElement;
+    Object.defineProperty(input, 'files', {
+      value: [new File(['x'], 'x.png', { type: 'image/png' })],
+      configurable: true,
+    });
+    input.dispatchEvent(new Event('change'));
+    await flush();
+    expect(q('.toast').textContent).toBe('Bu dosya türü desteklenmiyor');
+  });
+
   it('Reset needs a second tap, then restores defaults', () => {
     m = mountApp({ start: START, settings: { pin: null } });
     openSection(m, 'about');

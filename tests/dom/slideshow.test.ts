@@ -112,3 +112,48 @@ describe('Ken Burns', () => {
     m.dispose();
   });
 });
+
+describe('missing photo blobs', () => {
+  it('skips a photo whose blob is gone instead of polling it every second', async () => {
+    const { blobs, keys } = await withPhotos(3);
+    await blobs.delete('p0');
+    let gets = 0;
+    const realGet = blobs.get.bind(blobs);
+    blobs.get = (k) => (gets++, realGet(k));
+    const m = mountApp({
+      start: QUIET,
+      blobs,
+      settings: {
+        photos: keys,
+        display: { ...defaultSettings.display, screensaverMode: 'photos' },
+      },
+    });
+    let photoSlides = 0;
+    for (let s = 0; s < 3600; s += 10) {
+      await m.clock.advanceByAsync(10_000);
+      if (q('.slide--in.photo')) photoSlides++;
+    }
+    m.dispose();
+    expect(photoSlides).toBeGreaterThan(0);
+    expect(gets).toBeLessThan(100);
+  });
+
+  it('a photo list whose blobs are all gone shows panels and stops asking', async () => {
+    const { blobs } = await withPhotos(0);
+    let gets = 0;
+    const realGet = blobs.get.bind(blobs);
+    blobs.get = (k) => (gets++, realGet(k));
+    const m = mountApp({
+      start: QUIET,
+      blobs,
+      settings: {
+        photos: ['gone1', 'gone2'],
+        display: { ...defaultSettings.display, screensaverMode: 'photos' },
+      },
+    });
+    for (let i = 0; i < 30; i++) await m.clock.advanceByAsync(INTERVAL);
+    expect(document.querySelector('.panel')).not.toBeNull();
+    m.dispose();
+    expect(gets).toBe(2);
+  });
+});
