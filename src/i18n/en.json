@@ -119,5 +119,14 @@
   "upload.tooLarge": "The file is too large",
   "upload.wrongType": "This file type is not supported",
   "upload.tooMany": "At most 200 photos can be added",
-  "upload.storageFull": "Storage is full; some files were not saved"
+  "upload.storageFull": "Storage is full; some files were not saved",
+  "pin.section": "Settings PIN",
+  "pin.new": "New PIN (4 digits)",
+  "pin.repeat": "Repeat the PIN",
+  "pin.save": "Set PIN",
+  "pin.remove": "Remove PIN",
+  "pin.mismatch": "The PINs differ or are not 4 digits",
+  "pin.active": "Settings are protected by a PIN",
+  "pin.locked": "Too many tries; wait {n} s",
+  "about.update": "Apply update"
 }

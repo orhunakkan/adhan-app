@@ -25,6 +25,54 @@ export const aboutSection: SettingsSection = {
     g.body.append(version, storage);
     pane.append(g.el);
 
+    if (ctx.state.updateAvailable) {
+      const upd = actionButton(
+        t(lang, 'about.update'),
+        () => ctx.app.applyUpdate(),
+        'pill-button--accent',
+      );
+      upd.dataset.key = 'apply-update';
+      g.body.append(upd);
+    }
+
+    // Settings PIN (a convenience gate for a family kiosk; Guided Access is the strong control).
+    const pinGroup = group(t(lang, 'pin.section'));
+    if (ctx.state.settings.pin) {
+      pinGroup.body.append(h('p', 'row', t(lang, 'pin.active')));
+      const remove = actionButton(t(lang, 'pin.remove'), () =>
+        ctx.app.updateSettings({ pin: null }),
+      );
+      remove.dataset.key = 'pin-remove';
+      pinGroup.body.append(remove);
+    } else {
+      const field = (label: string, key: string) => {
+        const input = h('input', 'input touch-target');
+        input.type = 'password';
+        input.inputMode = 'numeric';
+        input.maxLength = 4;
+        input.autocomplete = 'off';
+        input.dataset.key = key;
+        input.setAttribute('aria-label', label);
+        const row = h('label', 'row');
+        row.append(h('span', 'row__label', label), input);
+        pinGroup.body.append(row);
+        return input;
+      };
+      const first = field(t(lang, 'pin.new'), 'pin-new');
+      const second = field(t(lang, 'pin.repeat'), 'pin-repeat');
+      const save = actionButton(t(lang, 'pin.save'), () => {
+        if (!/^\d{4}$/.test(first.value) || first.value !== second.value) {
+          ctx.toast(t(lang, 'pin.mismatch'));
+          return;
+        }
+        ctx.app.updateSettings({ pin: first.value });
+        ctx.toast(t(lang, 'settings.saved'));
+      });
+      save.dataset.key = 'pin-save';
+      pinGroup.body.append(save);
+    }
+    pane.append(pinGroup.el);
+
     const danger = group();
     let armed = false;
     const reset = actionButton(t(lang, 'about.reset'), () => {

@@ -77,7 +77,8 @@ describe('panels screensaver', () => {
     await flush();
     q('.settings-hotspot')!.dispatchEvent(new Event('pointerdown'));
     m.clock.advanceBy(LONG_PRESS_MS);
-    m.clock.advanceBy(2 * INTERVAL);
+    // Into the slide slot while the sheet is still open (it auto-closes after 2 min idle).
+    m.clock.advanceBy(2 * INTERVAL - LONG_PRESS_MS + 1000);
     expect(q('.screensaver')!.classList.contains('screensaver--active')).toBe(false);
   });
 
