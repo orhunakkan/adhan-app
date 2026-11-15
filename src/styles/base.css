@@ -66,6 +66,16 @@
     box-sizing: border-box;
   }
 
+  /*
+   * The hidden attribute must always win. Components set display (the settings
+   * layer is a full-screen grid), which overrides the UA [hidden] rule: the
+   * closed settings layer then stayed on screen, invisible, and swallowed every
+   * touch. !important in the first layer beats any later normal declaration.
+   */
+  [hidden] {
+    display: none !important;
+  }
+
   html,
   body {
     margin: 0;
