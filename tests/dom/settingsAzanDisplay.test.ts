@@ -116,8 +116,14 @@ describe('display section', () => {
     expect(q('.settings__title').textContent).toBe('الإعدادات');
     expect(q('.next-card__label').textContent).toBe('الصلاة التالية');
     // Generated label ids depend on how many controls earlier tests rendered.
-    const html = q('.settings').outerHTML.replace(/\blabel-\d+\b/g, 'label-N');
-    await expect(html).toMatchFileSnapshot('./__snapshots__/settings.display.ar.html');
+    for (const el of qa('.settings [id^="label-"], .settings [aria-labelledby^="label-"]')) {
+      if (/^label-\d+$/.test(el.id)) el.id = 'label-N';
+      const by = el.getAttribute('aria-labelledby');
+      if (by && /^label-\d+$/.test(by)) el.setAttribute('aria-labelledby', 'label-N');
+    }
+    await expect(q('.settings').outerHTML).toMatchFileSnapshot(
+      './__snapshots__/settings.display.ar.html',
+    );
   });
 
   it('12-hour clock, seconds, pattern, glass, screensaver and panel interval', () => {
