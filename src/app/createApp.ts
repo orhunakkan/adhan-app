@@ -17,8 +17,11 @@ import type {
 } from '../core/ports';
 import type { AzanPrayer } from '../core/prayerTimes';
 import { createScheduler, type PrayerEvent, type SchedulerEvent } from '../core/scheduler';
+import { createWakeLockManager, type WakeLockStatus } from '../core/wakeLock';
+import { t } from '../i18n';
 import { loadSettings, saveSettings } from '../core/storage';
 import { mountOverlay, type OverlayKind } from '../ui/startOverlay';
+import { mountToast } from '../ui/toast';
 import { createStore } from './store';
 
 export interface AppDeps {
@@ -55,6 +58,7 @@ export interface AppState {
   /** True until the Start tap, and again after a bfcache restore (the unlock is lost). */
   startRequired: boolean;
   overlay: OverlayKind;
+  wakeLock: WakeLockStatus;
 }
 
 export interface App {
@@ -101,6 +105,7 @@ export function createApp(deps: AppDeps): App {
     audio: initialAudio,
     startRequired: true,
     overlay: 'start',
+    wakeLock: 'idle',
   });
   const queue: PrayerEvent[] = [];
   let silentTimer: TimerHandle | null = null;
@@ -119,6 +124,18 @@ export function createApp(deps: AppDeps): App {
     onStart: () => void app.tapStart(),
     onEnable: () => void app.tapStart(),
     onResume: () => void app.resume(),
+  });
+  const toast = mountToast(deps.root, deps.clock);
+  const wakeLock = createWakeLockManager({
+    port: deps.wakeLock,
+    store: deps.store,
+    log,
+    onHint: () =>
+      toast.show({
+        message: t(store.get().settings.display.language, 'wake.hint'),
+        durationMs: 20_000,
+      }),
+    onChange: (status) => store.update({ wakeLock: status }),
   });
 
   const clearSilentTimer = () => {
@@ -197,7 +214,9 @@ export function createApp(deps: AppDeps): App {
   });
 
   const onVisibility = () => {
-    if (deps.doc.visibilityState !== 'hidden') scheduler.refresh();
+    if (deps.doc.visibilityState === 'hidden') return;
+    scheduler.refresh();
+    void wakeLock.reacquire();
   };
   const onPageShow = (e: Event) => {
     if ((e as PageTransitionEvent).persisted) {
@@ -230,6 +249,7 @@ export function createApp(deps: AppDeps): App {
       store.update({ startRequired: false });
       setOverlay();
       log.info('audio unlocked');
+      void wakeLock.acquire();
       const current = store.get().azan;
       if (
         current &&
@@ -252,6 +272,7 @@ export function createApp(deps: AppDeps): App {
       scheduler.stop();
       clearSilentTimer();
       overlayView.destroy();
+      toast.destroy();
       main.remove();
       deps.doc.removeEventListener('visibilitychange', onVisibility);
       deps.win.removeEventListener('pageshow', onPageShow);

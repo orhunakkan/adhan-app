@@ -4,5 +4,7 @@
   "start.hint": "Ezanın okunabilmesi için her yeniden başlatmadan sonra bir kez gerekli",
   "enable.tap": "Ezanı etkinleştirmek için dokunun",
   "enable.hint": "Ses iPad tarafından engellendi",
-  "azan.resume": "Ezana devam et"
+  "azan.resume": "Ezana devam et",
+  "wake.hint": "Ekranı açık tutun: Ayarlar → Ekran ve Parlaklık → Otomatik Kilit → Asla; Rehberli Erişim'de de aynısını yapın",
+  "toast.dismiss": "Kapat"
 }

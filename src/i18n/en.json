@@ -4,5 +4,7 @@
   "start.hint": "Needed once after every restart so the azan can play",
   "enable.tap": "Tap to enable azan",
   "enable.hint": "Sound was blocked by the iPad",
-  "azan.resume": "Resume azan"
+  "azan.resume": "Resume azan",
+  "wake.hint": "Keep the screen on: Settings → Display & Brightness → Auto-Lock → Never, and the same in Guided Access",
+  "toast.dismiss": "Dismiss"
 }
