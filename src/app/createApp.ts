@@ -20,6 +20,7 @@ import { createWakeLockManager, type WakeLockStatus } from '../core/wakeLock';
 import { applyTokens } from '../design/tokens';
 import { applyLocale, t } from '../i18n';
 import { loadSettings, saveSettings } from '../core/storage';
+import { mountBackground } from '../ui/background';
 import { mountClockView } from '../ui/clockView';
 import { mountNextPrayerCard } from '../ui/nextPrayerCard';
 import { mountPreAlert } from '../ui/preAlert';
@@ -142,6 +143,7 @@ export function createApp(deps: AppDeps): App {
   main.className = 'app-main';
   deps.root.append(main);
   const layout = mountLayout(main, (q) => deps.win.matchMedia(q));
+  const background = mountBackground(deps.root, deps.doc);
   const clockView = mountClockView(layout.clock);
   const nextCard = mountNextPrayerCard(layout.next);
   const timeline = mountTimeline(layout.timeline);
@@ -301,6 +303,7 @@ export function createApp(deps: AppDeps): App {
   );
   overlayView.render({ overlay: 'start', lang: settings.display.language });
   const renderViews = (s: AppState) => {
+    background.render(s);
     clockView.render(s);
     nextCard.render(s);
     timeline.render(s);

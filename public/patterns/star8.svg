@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" stroke="#ffffff" stroke-width="1">
+  <!-- Eight-point star (khatam) tile: two squares rotated 45° plus the connecting lattice. -->
+  <rect x="35" y="35" width="50" height="50"/>
+  <rect x="35" y="35" width="50" height="50" transform="rotate(45 60 60)"/>
+  <circle cx="60" cy="60" r="12"/>
+  <path d="M0 0 L25 25 M120 0 L95 25 M0 120 L25 95 M120 120 L95 95"/>
+  <path d="M60 0 V25 M60 95 V120 M0 60 H25 M95 60 H120"/>
+</svg>
