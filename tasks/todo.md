@@ -301,8 +301,8 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Deps: 35, 36
 
 ### Checkpoint 7: Release candidate
-- [ ] `npm run ci` green locally and on GitHub
-- [ ] All SPEC automated success criteria checked off
+- [x] `npm run ci` green locally and on GitHub
+- [x] All SPEC automated success criteria checked off
 
 ---
 
