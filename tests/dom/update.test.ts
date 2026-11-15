@@ -15,6 +15,10 @@ const t = computeDay('2026-05-10', SCHAUMBURG, calc);
 class FakeSw implements ServiceWorkerPort {
   waiting: (() => void) | null = null;
   applied = 0;
+  checks = 0;
+  checkForUpdate() {
+    this.checks++;
+  }
   register(onWaiting: () => void) {
     this.waiting = onWaiting;
   }
@@ -74,5 +78,15 @@ describe('service worker update flow', () => {
     sw.waiting!();
     m.app.applyUpdate();
     expect(sw.applied).toBe(1);
+  });
+
+  it('checks for a new version once each new day', () => {
+    const sw = new FakeSw();
+    m = mountApp({ start: new Date('2026-05-11T04:00:00Z'), serviceWorker: sw }); // 23:00 CDT
+    expect(sw.checks).toBe(0);
+    m.clock.advanceBy(2 * 3_600_000);
+    expect(sw.checks).toBe(1);
+    m.clock.advanceBy(3_600_000);
+    expect(sw.checks).toBe(1);
   });
 });

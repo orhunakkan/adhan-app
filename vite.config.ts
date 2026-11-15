@@ -49,15 +49,16 @@ export default defineConfig({
           },
         ],
       },
-      workbox: {
+      // A custom worker (src/sw.ts) so audio gets Range-request support.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
         // Everything the clock needs offline after the first load (brief §11).
         globPatterns: ['**/*.{html,js,css,woff2,json,svg,png,m4a,webmanifest}'],
         globIgnores: ['icons/startup-*.png'],
         maximumFileSizeToCacheInBytes: 30 * 1024 * 1024,
-        cleanupOutdatedCaches: true,
-        navigateFallback: '/index.html',
-        clientsClaim: false,
-        skipWaiting: false,
+        rollupFormat: 'iife',
       },
     }),
   ],

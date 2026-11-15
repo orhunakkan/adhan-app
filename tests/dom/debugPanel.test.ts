@@ -81,7 +81,11 @@ describe('debug panel', () => {
     let waiting: (() => void) | null = null;
     m = mountApp({
       start: t.asr,
-      serviceWorker: { register: (fn) => (waiting = fn), applyUpdate: () => {} },
+      serviceWorker: {
+        register: (fn) => (waiting = fn),
+        applyUpdate: () => {},
+        checkForUpdate: () => {},
+      },
     });
     waiting!();
     openDebug(m);
