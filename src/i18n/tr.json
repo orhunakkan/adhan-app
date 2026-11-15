@@ -101,5 +101,8 @@
   "photos.delete": "Sil",
   "photos.empty": "Henüz fotoğraf yok",
   "photos.count": "{n} fotoğraf",
-  "photos.item": "Fotoğraf {n}"
+  "photos.item": "Fotoğraf {n}",
+  "update.available": "Güncelleme hazır",
+  "update.apply": "Uygula",
+  "update.blocked": "Ezan vakti yakın; {time} sonrasında uygulayın"
 }

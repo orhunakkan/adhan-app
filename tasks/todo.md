@@ -270,7 +270,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `vite.config.ts`, `index.html`, `public/_headers`, `scripts/build-icons.mjs`, `tests/build/pwa.test.ts`
   - Deps: 20, 26, 29
 
-- [ ] **Task 33: Service worker update flow** (S) — §11
+- [x] **Task 33: Service worker update flow** (S) — §11
   - Acceptance: a waiting SW shows the "Update available — tap to apply" toast; apply is blocked by `canApplyUpdate` near prayers or during an azan (with a toast explaining it), allowed otherwise
   - Verify: `tests/dom/update.test.ts` with an injected SW-registration port
   - Files: `src/core/swUpdate.ts`, `src/adapters/sw.ts`, `tests/dom/update.test.ts`

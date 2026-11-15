@@ -4,7 +4,7 @@ import { defaultSettings } from '../../src/config/defaults';
 import type { Settings } from '../../src/config/schema';
 import { createApp, type App } from '../../src/app/createApp';
 import { parseCities, type City } from '../../src/core/cities';
-import type { GeolocationPort } from '../../src/core/ports';
+import type { GeolocationPort, ServiceWorkerPort } from '../../src/core/ports';
 import type { Location } from '../../src/core/prayerTimes';
 import { KEYS } from '../../src/core/storage';
 import { SCHAUMBURG } from './days';
@@ -28,6 +28,7 @@ export interface MountOptions {
   geolocation?: GeolocationPort;
   loadPanels?: () => Promise<unknown>;
   persistStorage?: () => Promise<boolean>;
+  serviceWorker?: ServiceWorkerPort;
 }
 
 export interface Mounted {
@@ -82,6 +83,7 @@ export function mountApp(opts: MountOptions = {}): Mounted {
     // Tests don't decode images: the 'resized' photo is the upload itself.
     photoProcessor: { resize: (file) => Promise.resolve(file) },
     ...(opts.persistStorage ? { persistStorage: opts.persistStorage } : {}),
+    ...(opts.serviceWorker ? { serviceWorker: opts.serviceWorker } : {}),
     loadPanels: () => opts.loadPanels?.() ?? Promise.resolve(testPanels()),
     objectUrls: { create: (b) => URL.createObjectURL(b), revoke: (u) => URL.revokeObjectURL(u) },
     createPlayer: () => {
