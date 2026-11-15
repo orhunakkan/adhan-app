@@ -166,7 +166,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/ui/clockView.ts`, `src/styles/views.css`, `tests/dom/clockView.test.ts`
   - Deps: 14, 19, 20
 
-- [ ] **Task 22: Next-prayer card, progress ring, timeline, pre-alert** (M) — §8.4
+- [x] **Task 22: Next-prayer card, progress ring, timeline, pre-alert** (M) — §8.4
   - Acceptance: hero card with name/time/countdown inside an SVG ring; `stroke-dashoffset` correct at 0/50/100%; six timeline chips with Lucide icons and past/current/next states; pre-alert pill "Akşam in 10 min" N minutes before
   - Verify: `tests/dom/progressRing.test.ts`, `tests/dom/timeline.test.ts`, pre-alert test via FakeClock
   - Files: `src/ui/progressRing.ts`, `src/ui/nextPrayerCard.ts`, `src/ui/timeline.ts`, `tests/dom/progressRing.test.ts`, `tests/dom/timeline.test.ts`

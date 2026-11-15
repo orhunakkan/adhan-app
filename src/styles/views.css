@@ -94,3 +94,167 @@
     color: var(--accent);
   }
 }
+
+@layer views {
+  /* Next-prayer hero card with the progress ring (brief §8.4). */
+  .next-card {
+    display: grid;
+    gap: var(--space-2);
+    justify-items: center;
+    padding: var(--space-6);
+    text-align: center;
+  }
+
+  .next-card__label {
+    font-size: var(--type-secondary);
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .next-card__name {
+    font-size: var(--type-next-name);
+    font-weight: 600;
+    line-height: 1.1;
+  }
+
+  .next-card__time {
+    font-size: var(--type-times);
+    color: var(--text-2);
+  }
+
+  .next-card__ring {
+    position: relative;
+    inline-size: clamp(10rem, 22vw, 16rem);
+    aspect-ratio: 1;
+    margin-block-start: var(--space-4);
+  }
+
+  .ring {
+    inline-size: 100%;
+    block-size: 100%;
+    transform: rotate(-90deg);
+  }
+
+  :root[dir='rtl'] .ring {
+    transform: rotate(-90deg) scaleY(-1);
+  }
+
+  .ring__track,
+  .ring__bar {
+    fill: none;
+    stroke-width: 4;
+  }
+
+  .ring__track {
+    stroke: var(--surface-border);
+  }
+
+  .ring__bar {
+    stroke: var(--accent);
+    stroke-linecap: round;
+  }
+
+  .next-card__center {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+  }
+
+  .next-card__countdown {
+    font-size: var(--type-countdown);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    direction: ltr;
+  }
+
+  .next-card__remaining {
+    font-size: calc(var(--type-secondary) * 0.85);
+    color: var(--text-2);
+  }
+
+  /* Timeline chips. */
+  .timeline {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+
+  .layout--portrait .timeline {
+    grid-template-columns: 1fr;
+  }
+
+  .chip {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    align-items: center;
+    padding: var(--space-4);
+    font-size: var(--type-times);
+    background: var(--surface);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+
+  .layout--portrait .chip {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .chip .icon {
+    inline-size: 1.4em;
+    block-size: 1.4em;
+    color: var(--text-2);
+  }
+
+  .chip__name {
+    font-size: 0.75em;
+    color: var(--text-2);
+  }
+
+  .chip--past {
+    opacity: 0.45;
+  }
+
+  .chip--current {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    box-shadow: 0 0 24px var(--accent-soft);
+
+    & .icon,
+    & .chip__name {
+      color: var(--accent);
+    }
+  }
+
+  .chip--next {
+    border-color: var(--surface-border);
+  }
+
+  /* Pre-alert pill. */
+  .prealert {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    inline-size: max-content;
+    max-inline-size: 90%;
+    margin-inline: auto;
+    padding-block: var(--space-2);
+    padding-inline: var(--space-5);
+    font-size: var(--type-secondary);
+    font-weight: 600;
+    color: var(--bg-1);
+    background: var(--accent);
+    border-radius: var(--radius-pill);
+    animation: slide-down var(--dur-slow) var(--ease-out);
+  }
+
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-16px);
+    }
+  }
+}

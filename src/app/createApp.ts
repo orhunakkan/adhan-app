@@ -21,6 +21,9 @@ import { applyTokens } from '../design/tokens';
 import { applyLocale, t } from '../i18n';
 import { loadSettings, saveSettings } from '../core/storage';
 import { mountClockView } from '../ui/clockView';
+import { mountNextPrayerCard } from '../ui/nextPrayerCard';
+import { mountPreAlert } from '../ui/preAlert';
+import { mountTimeline } from '../ui/timeline';
 import { mountLayout } from '../ui/layout';
 import { mountOverlay, type OverlayKind } from '../ui/startOverlay';
 import { mountToast } from '../ui/toast';
@@ -56,6 +59,8 @@ export interface AppState {
   needsLocation: boolean;
   /** The azan moment on screen, if any. */
   azan: ActiveAzan | null;
+  /** Pre-alert banner for an upcoming prayer (brief §6), cleared when it arrives. */
+  preAlert: { prayer: AzanPrayer; at: Date } | null;
   audio: AudioState;
   /** True until the Start tap, and again after a bfcache restore (the unlock is lost). */
   startRequired: boolean;
@@ -108,6 +113,7 @@ export function createApp(deps: AppDeps): App {
       period: null,
       needsLocation: settings.location === null,
       azan: null,
+      preAlert: null,
       audio: initialAudio,
       startRequired: true,
       overlay: 'start',
@@ -137,6 +143,9 @@ export function createApp(deps: AppDeps): App {
   deps.root.append(main);
   const layout = mountLayout(main, (q) => deps.win.matchMedia(q));
   const clockView = mountClockView(layout.clock);
+  const nextCard = mountNextPrayerCard(layout.next);
+  const timeline = mountTimeline(layout.timeline);
+  const preAlert = mountPreAlert(main);
   const overlayView = mountOverlay(deps.root, {
     background: main,
     onStart: () => void app.tapStart(),
@@ -232,6 +241,8 @@ export function createApp(deps: AppDeps): App {
       log.info('azan', { key: e.key });
       if (store.get().azan) queue.push(e);
       else startAzan(e);
+    } else if (e.type === 'preAlert') {
+      store.update({ preAlert: { prayer: e.prayer, at: e.at } });
     } else if (e.type === 'healthCheck') {
       void audio.healthCheck().then((ok) => {
         if (!ok) log.warn('health check failed', { before: e.key });
@@ -245,7 +256,11 @@ export function createApp(deps: AppDeps): App {
     getSettings: () => store.get().settings,
     onEvent,
     onTick: (now, days) => {
-      store.update(withPeriod(now, days));
+      const pre = store.get().preAlert;
+      store.update({
+        ...withPeriod(now, days),
+        ...(pre && now >= pre.at ? { preAlert: null } : {}),
+      });
       checkAzanAge(now);
     },
     onError: (msg, err) => log.error(msg, String(err)),
@@ -285,7 +300,12 @@ export function createApp(deps: AppDeps): App {
     overlayView.render({ overlay: s.overlay, lang: s.settings.display.language }),
   );
   overlayView.render({ overlay: 'start', lang: settings.display.language });
-  const renderViews = (s: AppState) => clockView.render(s);
+  const renderViews = (s: AppState) => {
+    clockView.render(s);
+    nextCard.render(s);
+    timeline.render(s);
+    preAlert.render(s);
+  };
   store.subscribe(renderViews);
   renderViews(store.get());
 
