@@ -8,7 +8,8 @@ export interface OverlayDeps {
   onStart(): void;
   onEnable(): void;
   onResume(): void;
-  /** Content behind the overlay, made inert while a modal overlay is open. */
+  /** An overlay could not be drawn (logged; the page stays usable). */
+  onError?(err: unknown): void;
 }
 
 export interface OverlayView {
@@ -86,14 +87,22 @@ export function mountOverlay(root: HTMLElement, deps: OverlayDeps): OverlayView 
       if (id === shown) return;
       shown = id;
       layer.replaceChildren();
-      const isModal = overlay === 'start' || overlay === 'enableAzan';
       restoreInert?.();
       restoreInert = null;
-      // A modal overlay makes everything else under the app root unreachable.
-      if (isModal) restoreInert = openModal(root, layer);
       if (!overlay) return;
-      const view = overlay === 'resume' ? resumeBar(lang) : modal(overlay === 'enableAzan', lang);
-      layer.append(view.el);
+      let view: { el: HTMLElement; focus(): void };
+      try {
+        view = overlay === 'resume' ? resumeBar(lang) : modal(overlay === 'enableAzan', lang);
+        layer.append(view.el);
+      } catch (err) {
+        // Never leave the page inert behind an overlay that failed to draw:
+        // the clock would show but nothing could be touched.
+        layer.replaceChildren();
+        deps.onError?.(err);
+        return;
+      }
+      // Only a modal that is actually on screen makes the rest unreachable.
+      if (overlay === 'start' || overlay === 'enableAzan') restoreInert = openModal(root, layer);
       view.focus();
     },
     destroy() {

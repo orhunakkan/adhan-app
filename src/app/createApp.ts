@@ -252,6 +252,7 @@ export function createApp(deps: AppDeps): App {
     onStart: () => void app.tapStart(),
     onEnable: () => void app.tapStart(),
     onResume: () => void app.resume(),
+    onError: (err) => log.error('overlay failed to render', { err: String(err) }),
   });
   const toast = mountToast(deps.root, deps.clock);
   const wakeLock = createWakeLockManager({

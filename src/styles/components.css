@@ -40,6 +40,25 @@
     }
   }
 
+  /* ?diag panel (ui/diagnostics.ts): above everything, never hit by touches. */
+  .diag {
+    position: fixed;
+    inset-inline: 0;
+    inset-block-end: 0;
+    z-index: 100;
+    max-block-size: 60vh;
+    padding: 8px;
+    margin: 0;
+    overflow: auto;
+    font:
+      11px/1.35 ui-monospace,
+      monospace;
+    color: #fff;
+    white-space: pre-wrap;
+    pointer-events: none;
+    background: rgb(0 0 0 / 85%);
+  }
+
   /* Overlays (brief §8.7). */
   .overlay-layer {
     position: fixed;
