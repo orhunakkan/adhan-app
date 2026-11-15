@@ -8,7 +8,7 @@ The standard verification for every task (on top of its own checks) is: the new 
 
 ## Phase 1: Foundation
 
-- [ ] **Task 1: Toolchain scaffold + smoke page** (M) — brief §2, §17.1
+- [x] **Task 1: Toolchain scaffold + smoke page** (M) — brief §2, §17.1
   - Acceptance: Vite + strict TS project with `browserslist`, Safari 15 build/CSS targets, Lightning CSS, restricted TS `lib`; `index.html` + `src/main.ts` render one computed prayer time using `adhan`, validate a sample with `zod`, and touch `idb-keyval`; `.gitignore` per brief §12.1 (incl. `public/audio/*` + `!silence.m4a`), MIT `LICENSE`
   - Verify: `npm run build` produces `dist/`; `npm run dev` serves the page with a time shown; `npx tsc --noEmit` passes, and a probe using `Array.prototype.toSorted` fails typecheck
   - Files: `package.json`, `vite.config.ts`, `tsconfig.json`, `index.html`, `src/main.ts`, `.gitignore`, `LICENSE`

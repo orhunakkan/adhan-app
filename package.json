@@ -1,0 +1,32 @@
+{
+  "name": "adhan-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Offline-first azan clock PWA for an always-on iPad kiosk (iPadOS 15+).",
+  "license": "MIT",
+  "type": "module",
+  "browserslist": [
+    "iOS >= 15.6"
+  ],
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json"
+  },
+  "dependencies": {
+    "adhan": "^4.4.6",
+    "idb-keyval": "^6.3.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "browserslist": "^4.29.5",
+    "lightningcss": "^1.33.0",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.8"
+  }
+}

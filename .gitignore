@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+.wrangler/
+.env*
+*.log
+.DS_Store
+.vitest-attachments/
+tests/**/__screenshots__/
+
+# Azan audio is copyrighted and never committed (SPEC Boundaries). Only the generated silence clip.
+public/audio/*
+!public/audio/silence.m4a
