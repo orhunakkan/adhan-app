@@ -12,7 +12,12 @@ export interface ClockView {
 /** Device zone, used only until a location is configured. */
 const deviceZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-export function mountClockView(host: HTMLElement): ClockView {
+/**
+ * `onSetLocation`: until a location is set, a visible button opens Settings at
+ * Location (the hidden corner long-press is for the finished kiosk, not for
+ * first setup).
+ */
+export function mountClockView(host: HTMLElement, onSetLocation?: () => void): ClockView {
   const root = h('div', 'clock');
   const time = h('p', 'clock__time');
   const hm = h('span', 'clock__hm');
@@ -23,7 +28,13 @@ export function mountClockView(host: HTMLElement): ClockView {
   const hijri = h('p', 'clock__hijri');
   const place = h('p', 'clock__location');
   const prompt = h('p', 'clock__prompt');
-  root.append(time, date, hijri, place, prompt);
+  const setLocation = h(
+    'button',
+    'pill-button pill-button--accent touch-target clock__set-location',
+  );
+  setLocation.type = 'button';
+  setLocation.addEventListener('click', () => onSetLocation?.());
+  root.append(time, date, hijri, place, prompt, setLocation);
   host.append(root);
 
   let dateKey = '';
@@ -56,6 +67,8 @@ export function mountClockView(host: HTMLElement): ClockView {
       setText(place, location?.name ?? t(lang, 'location.missing'));
       setText(prompt, s.needsLocation ? t(lang, 'location.prompt') : '');
       setHidden(prompt, !s.needsLocation);
+      setText(setLocation, t(lang, 'location.set'));
+      setHidden(setLocation, !s.needsLocation || !onSetLocation);
     },
   };
 }

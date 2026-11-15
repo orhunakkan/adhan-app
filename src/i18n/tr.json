@@ -19,6 +19,7 @@
   "prealert.text": "{prayer} vaktine {n} dk",
   "location.missing": "Konum ayarlanmadı",
   "location.prompt": "Namaz vakitlerini hesaplamak için ayarlardan bir konum seçin",
+  "location.set": "Konum seç",
   "azan.stop": "Durdur",
   "azan.time": "Vakit {time}",
   "azan.label": "Ezan vakti",

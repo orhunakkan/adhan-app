@@ -222,7 +222,7 @@ export function createApp(deps: AppDeps): App {
   deps.root.append(main);
   const layout = mountLayout(main, (q) => deps.win.matchMedia(q));
   const background = mountBackground(deps.root, deps.doc);
-  const clockView = mountClockView(layout.clock);
+  const clockView = mountClockView(layout.clock, () => late.settings?.open('location'));
   const nextCard = mountNextPrayerCard(layout.next);
   const timeline = mountTimeline(layout.timeline);
   const preAlert = mountPreAlert(main);
