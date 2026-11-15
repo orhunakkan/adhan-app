@@ -1,7 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { defaultSettings } from '../../src/config/defaults';
 import type { Settings } from '../../src/config/schema';
-import { createAudioController, SILENCE_URL, type AudioState } from '../../src/core/audio';
+import {
+  createAudioController,
+  PLAY_TIMEOUT_MS,
+  SILENCE_URL,
+  type AudioState,
+} from '../../src/core/audio';
 import { createLogger } from '../../src/core/logger';
 import { FakeChime } from '../helpers/fakeChime';
 import { FakeClock } from '../helpers/fakeClock';
@@ -12,7 +17,7 @@ import { objectUrls } from '../helpers/objectUrls';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-function setup(settings: Settings = defaultSettings) {
+function setup(settings: Settings = defaultSettings, hook?: (s: AudioState) => void) {
   const players: FakeMediaPlayer[] = [];
   const blobs = new MemoryBlobStore();
   const chime = new FakeChime();
@@ -29,9 +34,16 @@ function setup(settings: Settings = defaultSettings) {
     blobs,
     chime,
     objectUrls: { create: (b) => URL.createObjectURL(b), revoke: (u) => URL.revokeObjectURL(u) },
+    clock: {
+      setTimeout: (fn, ms) => setTimeout(fn, ms),
+      clearTimeout: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
+    },
     log: createLogger(new MemoryStore(), clock),
     getSettings: () => current,
-    onChange: (s) => states.push(s),
+    onChange: (s) => {
+      states.push(s);
+      hook?.(s);
+    },
   });
   return {
     audio,
@@ -185,15 +197,15 @@ describe('playAzan', () => {
     await t.audio.unlock();
     t.player.rejectNextPlay('NotAllowedError');
     await t.audio.playAzan('maghrib');
-    expect(t.audio.state()).toMatchObject({ status: 'blocked', prayer: 'maghrib' });
-    expect(t.chime.played).toBe(0);
+    expect(t.audio.state()).toMatchObject({ status: 'blocked', phase: null, prayer: null });
+    expect(t.chime.played).toBe(1); // best effort: Web Audio has its own unlock
   });
 
   it('cannot play before the Start tap', async () => {
     const t = setup();
     await t.audio.playAzan('fajr');
     expect(t.players).toHaveLength(0);
-    expect(t.audio.state()).toMatchObject({ status: 'locked', prayer: 'fajr' });
+    expect(t.audio.state()).toMatchObject({ status: 'locked', phase: null, prayer: null });
   });
 
   it('plays the dua after the azan when enabled, then returns to ready', async () => {
@@ -293,8 +305,8 @@ describe('healthCheck', () => {
     expect(t.player.sources.at(-1)).toBe(SILENCE_URL);
   });
 
-  it('reports blocked on NotAllowedError (or any error)', async () => {
-    for (const name of ['NotAllowedError', 'AbortError']) {
+  it('reports blocked on NotAllowedError (or any non-abort error)', async () => {
+    for (const name of ['NotAllowedError', 'NotSupportedError']) {
       const t = setup();
       await t.audio.unlock();
       t.player.rejectNextPlay(name);
@@ -445,5 +457,275 @@ describe('position', () => {
     expect(t.audio.position()).toEqual({ current: 30, duration: 120 });
     t.player.setPosition(0, Number.NaN);
     expect(t.audio.position()).toEqual({ current: 0, duration: 0 });
+  });
+});
+
+describe('audio review regressions', () => {
+  it('C1: overlapping starts never leak an object URL', async () => {
+    const t = setup();
+    await t.blobs.set('a', new Blob(['a']));
+    await t.blobs.set('b', new Blob(['b']));
+    await t.audio.unlock();
+    const first = t.audio.testSource('user:a');
+    const second = t.audio.testSource('user:b');
+    await Promise.all([first, second]);
+    expect(objectUrls.live).toEqual([t.player.src]);
+    t.audio.stop();
+    expect(objectUrls.live).toEqual([]);
+  });
+
+  it('C2: an IndexedDB failure falls back to the bundled file and flags the upload', async () => {
+    const t = setup({
+      ...defaultSettings,
+      azan: { ...defaultSettings.azan, audio: { ...defaultSettings.azan.audio, asr: 'user:a' } },
+    });
+    t.blobs.get = () => Promise.reject(new Error('Connection to Indexed Database server lost'));
+    await t.audio.unlock();
+    await t.audio.playAzan('asr');
+    expect(t.player.src).toBe('/audio/rast.m4a');
+    expect(t.audio.state()).toMatchObject({ status: 'playing', missing: ['user:a'] });
+  });
+
+  it('C3: a play() that never settles times out and falls back', async () => {
+    const t = setup();
+    vi.useFakeTimers();
+    try {
+      await t.audio.unlock();
+      t.player.holdNextPlay();
+      const pending = t.audio.playAzan('dhuhr');
+      await vi.advanceTimersByTimeAsync(PLAY_TIMEOUT_MS);
+      await pending;
+      t.player.release(); // a late resolve after the timeout is ignored
+      await vi.advanceTimersByTimeAsync(0);
+      expect(t.audio.state().missing).toEqual(['bundled:ussak']);
+      expect(t.chime.played).toBe(1);
+      expect(t.audio.state()).toMatchObject({ status: 'ready', phase: null });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('C4: stop() pauses a playback that is still starting', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    t.player.holdNextPlay();
+    const pending = t.audio.playAzan('dhuhr');
+    await flush();
+    t.audio.stop();
+    expect(t.player.calls.at(-1)).toBe('pause');
+    t.player.release();
+    await pending;
+    expect(t.audio.state()).toMatchObject({ status: 'ready', phase: null });
+  });
+
+  it('C5: an OS auto-resume (playing event) clears the interrupted state', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    await t.audio.playAzan('isha');
+    t.player.interrupt();
+    expect(t.audio.state().status).toBe('interrupted');
+    t.player.emit('playing');
+    expect(t.audio.state().status).toBe('playing');
+    t.player.finish();
+    await flush();
+    expect(t.audio.state()).toMatchObject({ status: 'ready', phase: null });
+  });
+
+  it('C6: a blocked test leaves no phase behind, so health checks keep working', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    t.player.rejectNextPlay('NotAllowedError');
+    await t.audio.testSource('bundled:rast');
+    expect(t.audio.state()).toMatchObject({ status: 'blocked', phase: null });
+    expect(await t.audio.unlock()).toBe(true);
+    expect(t.audio.state()).toMatchObject({ status: 'ready', phase: null });
+    t.player.rejectNextPlay('NotAllowedError');
+    expect(await t.audio.healthCheck()).toBe(false);
+  });
+
+  it('I1: an error event before play() settles does not start a second loop', async () => {
+    const t = setup(withDua);
+    await t.audio.unlock();
+    await t.audio.playAzan('asr');
+    t.player.holdNextPlay();
+    t.player.finish(); // dua starts
+    await flush();
+    t.player.emit('error'); // before the dua play() settles: ignored
+    t.player.release('NotSupportedError');
+    await flush();
+    expect(t.chime.played).toBe(0);
+    expect(t.audio.state()).toMatchObject({ status: 'ready', phase: null });
+  });
+
+  it('I3: a missing uploaded blob is flagged', async () => {
+    const t = setup({
+      ...defaultSettings,
+      azan: { ...defaultSettings.azan, audio: { ...defaultSettings.azan.audio, asr: 'user:gone' } },
+    });
+    await t.audio.unlock();
+    await t.audio.playAzan('asr');
+    expect(t.audio.state().missing).toEqual(['user:gone']);
+  });
+
+  it('I4: AbortError while loading means interrupted (Resume), not a broken file', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    t.player.rejectNextPlay('AbortError');
+    await t.audio.playAzan('maghrib');
+    expect(t.audio.state()).toMatchObject({ status: 'interrupted', missing: [] });
+    await t.audio.resume();
+    expect(t.player.src).toBe('/audio/segah.m4a');
+    expect(t.audio.state().status).toBe('playing');
+  });
+
+  it('I4: an aborted silent clip is inconclusive, not blocked', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    t.player.rejectNextPlay('AbortError');
+    expect(await t.audio.healthCheck()).toBe(true);
+    expect(t.audio.state().status).toBe('ready');
+  });
+
+  it('I6: a resume that settles after stop() does not flip back to playing', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    await t.audio.playAzan('isha');
+    t.player.interrupt();
+    t.player.holdNextPlay();
+    const pending = t.audio.resume();
+    t.audio.stop();
+    t.player.release();
+    await pending;
+    expect(t.audio.state()).toMatchObject({ status: 'ready', phase: null });
+  });
+
+  it('resume that fails moves on to the next source', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    await t.audio.playAzan('isha');
+    t.player.interrupt();
+    t.player.rejectNextPlay('NotSupportedError');
+    await t.audio.resume();
+    expect(t.audio.state().missing).toEqual(['bundled:hicaz']);
+  });
+
+  it('I7: stop() keeps blocked and locked', async () => {
+    const t = setup();
+    t.audio.stop();
+    expect(t.audio.state().status).toBe('locked');
+    await t.audio.unlock();
+    t.player.rejectNextPlay('NotAllowedError');
+    await t.audio.playAzan('fajr');
+    t.audio.stop();
+    expect(t.audio.state().status).toBe('blocked');
+  });
+
+  it('I8: a test never preempts an azan', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    await t.audio.playAzan('asr');
+    await t.audio.testSource('bundled:segah');
+    expect(t.audio.state()).toMatchObject({ phase: 'azan', prayer: 'asr' });
+    expect(t.player.src).toBe('/audio/rast.m4a');
+  });
+
+  it('M3: a source that plays again is removed from the missing list', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    t.player.rejectNextPlay('NotSupportedError');
+    await t.audio.testSource('bundled:segah');
+    await flush();
+    expect(t.audio.state().missing).toEqual(['bundled:segah']);
+    await t.audio.testSource('bundled:segah');
+    expect(t.audio.state().missing).toEqual([]);
+  });
+
+  it('M6: an invalid source is rejected without touching the element', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    await t.audio.testSource('http://example.com/x.mp3');
+    expect(t.player.sources).toEqual([SILENCE_URL]);
+    expect(t.audio.state().missing).toEqual(['http://example.com/x.mp3']);
+  });
+
+  it('a superseded silent clip does not report', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    t.player.holdNextPlay();
+    const check = t.audio.healthCheck();
+    await t.audio.playAzan('asr');
+    t.player.release('NotAllowedError');
+    expect(await check).toBe(true);
+    expect(t.audio.state().status).toBe('playing');
+  });
+
+  it('stop() during a start that began while blocked keeps blocked', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    t.player.rejectNextPlay('NotAllowedError');
+    await t.audio.healthCheck();
+    t.player.holdNextPlay();
+    const pending = t.audio.playAzan('asr');
+    await flush();
+    t.audio.stop();
+    t.player.release();
+    await pending;
+    expect(t.audio.state().status).toBe('blocked');
+  });
+
+  it('a stop() from inside onChange during the fallback loop ends it cleanly', async () => {
+    let stopped = false;
+    const t = setup(defaultSettings, (s) => {
+      if (!stopped && s.missing.length) {
+        stopped = true;
+        t.audio.stop();
+      }
+    });
+    await t.audio.unlock();
+    t.player.rejectNextPlay('NotSupportedError');
+    await t.audio.playAzan('dhuhr');
+    expect(t.chime.played).toBe(0);
+    expect(t.audio.state()).toMatchObject({ status: 'ready', phase: null });
+  });
+
+  it('a resume aborted again stays interrupted', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    await t.audio.playAzan('isha');
+    t.player.interrupt();
+    t.player.rejectNextPlay('AbortError');
+    await t.audio.resume();
+    expect(t.audio.state().status).toBe('interrupted');
+  });
+
+  it('playing and stalled events while idle change nothing', async () => {
+    const t = setup();
+    await t.audio.unlock();
+    t.player.emit('playing');
+    t.player.emit('stalled');
+    expect(t.audio.state()).toMatchObject({ status: 'ready', phase: null });
+  });
+
+  it('a stop() from inside onChange for an unavailable upload ends it cleanly', async () => {
+    let stopped = false;
+    const t = setup(
+      {
+        ...defaultSettings,
+        azan: {
+          ...defaultSettings.azan,
+          audio: { ...defaultSettings.azan.audio, asr: 'user:gone' },
+        },
+      },
+      (s) => {
+        if (!stopped && s.missing.length) {
+          stopped = true;
+          t.audio.stop();
+        }
+      },
+    );
+    await t.audio.unlock();
+    await t.audio.playAzan('asr');
+    expect(t.player.sources).toEqual([SILENCE_URL]);
+    expect(t.audio.state()).toMatchObject({ status: 'ready', phase: null });
   });
 });
