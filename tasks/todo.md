@@ -185,7 +185,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Deps: 16, 23
 
 ### Checkpoint 4: Main experience
-- [ ] `npm run ci` green; ui coverage ≥ 85%
+- [x] `npm run ci` green; ui coverage ≥ 85% (ui branches ≥ 92% per file except dom helpers)
 - [ ] Owner (non-blocking): review `/styleguide` and the main screen in the browser or on the iPad
 
 ---
