@@ -154,7 +154,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/i18n/index.ts`, `src/i18n/{tr,en,ar}.json`, `tests/core/i18n.test.ts`
   - Deps: 3
 
-- [ ] **Task 20: Fonts, base/component styles, styleguide route** (M) — §8.2, §8.4 Cards, §8.9, §8.10
+- [x] **Task 20: Fonts, base/component styles, styleguide route** (M) — §8.2, §8.4 Cards, §8.9, §8.10
   - Acceptance: self-hosted woff2 (Inter, IBM Plex Sans Arabic, Noto Naskh Arabic) + OFL files in `public/fonts/`, `@font-face` + preloads; `base.css`/`components.css` with `@layer`, logical properties, 48 px touch-target class, optional glass class; `/styleguide` (dev only) renders every component, theme and period gradient
   - Verify: fonts ≤ 400 KB in the build test; the styleguide is excluded from the prod build (build test); Stylelint compat passes
   - Files: `public/fonts/*`, `src/styles/base.css`, `src/styles/components.css`, `src/ui/styleguide.ts`, `index.html`

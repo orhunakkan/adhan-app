@@ -59,3 +59,33 @@ describe('public-repo hygiene', () => {
     expect(existsSync(join(ROOT, 'playwright.config.ts'))).toBe(false);
   });
 });
+
+describe('fonts', () => {
+  it('every font file in dist/ has a matching OFL licence in public/fonts/', async () => {
+    const { requireDist } = await import('./lib/dist');
+    const fonts = requireDist().filter((f) => f.endsWith('.woff2'));
+    expect(fonts.length).toBeGreaterThan(0);
+    for (const f of fonts) {
+      const family = f
+        .replace(/^fonts\//, '')
+        .replace(/-(latin|latin-ext|\d{3}|wght).*$/, '')
+        .replace(/-latin$/, '');
+      expect(existsSync(join(ROOT, 'public', 'fonts', `${family}.OFL.txt`)), f).toBe(true);
+    }
+  });
+});
+
+describe('fonts', () => {
+  it('every font file in dist/ has a matching OFL licence in public/fonts/', async () => {
+    const { requireDist } = await import('./lib/dist');
+    const fonts = requireDist().filter((f) => f.endsWith('.woff2'));
+    expect(fonts.length).toBeGreaterThan(0);
+    for (const f of fonts) {
+      const family = f
+        .replace(/^fonts\//, '')
+        .replace(/\.woff2$/, '')
+        .replace(/-(latin-ext-wght|latin-wght|wght|\d{3})$/, '');
+      expect(existsSync(join(ROOT, 'public', 'fonts', `${family}.OFL.txt`)), f).toBe(true);
+    }
+  });
+});

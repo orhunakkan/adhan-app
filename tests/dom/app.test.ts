@@ -126,6 +126,21 @@ describe('createApp (mountApp harness)', () => {
     );
   });
 
+  it('applies theme, locale and glass to <html> on start and on change', () => {
+    m = mountApp({ start: new Date('2026-05-10T17:00:00Z') });
+    const html = document.documentElement;
+    expect(html.dataset.theme).toBe('midnight');
+    expect(html.lang).toBe('tr');
+    expect(html.style.getPropertyValue('--bg-1')).toBe('#0B1020');
+    const display = m.app.state().settings.display;
+    m.app.updateSettings({ display: { ...display, theme: 'sand', language: 'ar', glass: true } });
+    expect(html.dataset.theme).toBe('sand');
+    expect(html.dir).toBe('rtl');
+    expect(html.dataset.glass).toBe('');
+    m.app.updateSettings({ display: { ...display, glass: false } });
+    expect(html.dataset.glass).toBeUndefined();
+  });
+
   it('logs startup to the ring buffer', () => {
     m = mountApp({ start: new Date('2026-05-10T17:00:00Z') });
     expect(m.app.log.entries().some((e) => e.msg === 'app started')).toBe(true);

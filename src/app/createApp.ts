@@ -17,7 +17,8 @@ import type {
 import type { AzanPrayer } from '../core/prayerTimes';
 import { createScheduler, type PrayerEvent, type SchedulerEvent } from '../core/scheduler';
 import { createWakeLockManager, type WakeLockStatus } from '../core/wakeLock';
-import { t } from '../i18n';
+import { applyTokens } from '../design/tokens';
+import { applyLocale, t } from '../i18n';
 import { loadSettings, saveSettings } from '../core/storage';
 import { mountOverlay, type OverlayKind } from '../ui/startOverlay';
 import { mountToast } from '../ui/toast';
@@ -262,6 +263,20 @@ export function createApp(deps: AppDeps): App {
   deps.doc.addEventListener('visibilitychange', onVisibility);
   deps.win.addEventListener('pageshow', onPageShow);
 
+  const applyDisplay = (s: Settings) => {
+    applyTokens(deps.doc.documentElement, s.display.theme);
+    applyLocale(deps.doc, s.display.language);
+    if (s.display.glass) deps.doc.documentElement.dataset.glass = '';
+    else delete deps.doc.documentElement.dataset.glass;
+  };
+  applyDisplay(settings);
+  let lastDisplay = settings.display;
+  store.subscribe((s) => {
+    if (s.settings.display !== lastDisplay) {
+      lastDisplay = s.settings.display;
+      applyDisplay(s.settings);
+    }
+  });
   store.subscribe((s) =>
     overlayView.render({ overlay: s.overlay, lang: s.settings.display.language }),
   );
