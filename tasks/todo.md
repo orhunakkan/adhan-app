@@ -100,7 +100,7 @@ The standard verification for every task (on top of its own checks) is: the new 
   - Files: `src/core/logger.ts`, `tests/core/logger.test.ts`
   - Deps: 11
 
-- [ ] **Task 13: Scheduler (pure `getDuePrayer` + tick loop)** (M) — §6
+- [x] **Task 13: Scheduler (pure `getDuePrayer` + tick loop)** (M) — §6
   - Acceptance: fires at T, not at T−1 s, at T+119 s, not at T+121 s; never the same key twice; skips disabled prayers and sunrise; midnight rollover and Isha after midnight; date change mid-tick; tick loop via injected Clock persists `lastFired`; pre-alert event N minutes before
   - Verify: table tests + 48 h FakeClock simulation (exactly 10 azans, correct order) + mid-day "reload" with persisted `lastFired` (no duplicates or bursts) + DST-day simulation
   - Files: `src/core/scheduler.ts`, `tests/core/scheduler.test.ts`, `tests/core/schedulerLoop.test.ts`
